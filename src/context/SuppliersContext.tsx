@@ -110,7 +110,7 @@ export const SuppliersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const reload = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/Suppliers`, { headers: authHeaders() });
+      const res = await fetch(`/api/Suppliers`, { headers: authHeaders() });
       if (!res.ok) {
         console.warn('Failed to fetch suppliers. status:', res.status);
         setSuppliers([]);
@@ -164,7 +164,7 @@ export const SuppliersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const body = normalizePayload(payload);
 
-      const res = await fetch(`${API_BASE}/api/Suppliers`, {
+      const res = await fetch(`/api/Suppliers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(body),
@@ -188,7 +188,7 @@ export const SuppliersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const merged: Supplier = { ...current, ...updates } as Supplier;
       const body = normalizePayload(merged);
 
-      const res = await fetch(`${API_BASE}/api/Suppliers/${id}`, {
+      const res = await fetch(`/api/Suppliers/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(body),
@@ -205,7 +205,7 @@ export const SuppliersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const deleteSupplier = async (id: number): Promise<ApiResult> => {
     try {
-      const res = await fetch(`${API_BASE}/api/Suppliers/${id}`, {
+      const res = await fetch(`/api/Suppliers/${id}`, {
         method: 'DELETE',
         headers: authHeaders(),
       });

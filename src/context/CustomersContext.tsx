@@ -106,7 +106,7 @@ export const CustomersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const reload = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/Customer`, { headers: authHeaders() });
+      const res = await fetch(`/api/Customer`, { headers: authHeaders() });
       if (!res.ok) {
         console.warn('Failed to fetch customers. status:', res.status);
         setCustomers([]);
@@ -148,7 +148,7 @@ export const CustomersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         isActive: payload.isActive ?? true,
       };
 
-      const res = await fetch(`${API_BASE}/api/Customer`, {
+      const res = await fetch(`/api/Customer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(body),
@@ -170,7 +170,7 @@ export const CustomersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return { ok: false, message: 'id غير صحيح' };
     }
 
-    const res = await fetch(`${API_BASE}/api/Customer/${cid}`, {
+    const res = await fetch(`/api/Customer/${cid}`, {
       method: 'DELETE',
       headers: authHeaders(),
     });
@@ -205,7 +205,7 @@ export const CustomersProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         isActive: merged.isActive ?? true,
       };
 
-      const res = await fetch(`${API_BASE}/api/Customer/${id}`, {
+      const res = await fetch(`/api/Customer/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(body),

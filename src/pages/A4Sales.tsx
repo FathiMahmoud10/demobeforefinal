@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const API_BASE = 'https://takamulerp.runasp.net/api';
 
 async function apiFetch(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${path}`, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
   });

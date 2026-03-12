@@ -33,7 +33,7 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       const token = localStorage.getItem('takamul_token');
       // GET should hit the base collection endpoint, not the CREATE action
-      const url = `${API_BASE}/api/ProductCategories`;
+      const url = `/api/ProductCategories`;
       console.debug('GroupsContext.loadFromApi calling GET', url);
       const res = await fetch(url, {
         headers: {
@@ -100,7 +100,7 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     // Remove trailing slash or ensure exact URL
-    const url = `${API_BASE}/api/ProductCategories/CREATE`.replace(/\/+$/, '');
+    const url = `/api/ProductCategories/CREATE`.replace(/\/+$/, '');
 
     // log each entry in case the server rejects unexpected/missing fields
     console.debug('GroupsContext.addGroup submitting form data:');
@@ -159,7 +159,7 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const deleteGroup = async (id: number) => {
     const token = localStorage.getItem('takamul_token');
-    const url = `${API_BASE}/api/ProductCategories/${id}`;
+    const url = `/api/ProductCategories/${id}`;
     console.debug('deleteGroup calling DELETE', url);
 
     const res = await fetch(url, {
