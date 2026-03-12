@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import Logo from '@/components/Logo';
-import { localizeAuthError, AUTH_API_BASE } from '@/lib/utils';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -15,56 +14,13 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const isDark = theme === 'dark';
 
-  const LOGIN_API = `${AUTH_API_BASE}/api/Auth/login`;
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const res = await fetch(LOGIN_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userName: username.trim(),
-          email: username.trim(),
-          password,
-        }),
-      });
-      const text = await res.text();
-      const data = text ? (() => { try { return JSON.parse(text); } catch { return {}; } })() : {};
-      if (!res.ok) {
-        const rawMsg =
-          typeof data?.message === 'string' ? data.message
-          : typeof data?.error === 'string' ? data.error
-          : Array.isArray(data?.errors) ? data.errors.join(' ')
-          : (data?.title ?? text) || '';
-        setError(localizeAuthError(rawMsg, t, 'login_error'));
-        setLoading(false);
-        return;
-      }
-      const token =
-        data?.token ?? data?.accessToken ?? data?.access_token ?? data?.data?.token;
-      const refreshToken =
-        data?.refreshToken ?? data?.refresh_token ?? data?.data?.refreshToken;
-      if (token) {
-        localStorage.setItem('takamul_token', token);
-      }
-      if (refreshToken) {
-        localStorage.setItem('takamul_refresh_token', refreshToken);
-      }
-      navigate('/dashboard');
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : t('login_error');
-      setError(t('login_network_error') || msg);
-    } finally {
-      setLoading(false);
-    }
+    // In a real app, you would validate credentials here
+    navigate('/dashboard');
   };
 
   const setThemeMode = (mode: 'light' | 'dark') => {
@@ -236,12 +192,6 @@ export default function Login() {
             />
           </div>
 
-          {error && (
-            <p className={`text-sm ${direction === 'rtl' ? 'text-right' : 'text-left'} text-red-600 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg`} role="alert">
-              {error}
-            </p>
-          )}
-
           <div className="flex items-center justify-between text-sm">
             <label className="flex items-center gap-2 cursor-pointer">
               <input 
@@ -262,10 +212,9 @@ export default function Login() {
 
           <button 
             type="submit"
-            disabled={loading}
-            className="w-full h-12 text-white text-lg font-bold rounded-xl shadow-md hover:opacity-90 transition-all bg-[#10b981] disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full h-12 text-white text-lg font-bold rounded-xl shadow-md hover:opacity-90 transition-all bg-[#10b981]"
           >
-            {loading ? t('login_loading') : t('login_button')}
+            {t('login_button')}
           </button>
         </form>
 

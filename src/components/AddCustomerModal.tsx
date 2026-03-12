@@ -17,7 +17,7 @@ type StateItem = { id: number; stateName?: string; name?: string };
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL ?? ''; // عدّلها حسب مشروعك
 
 async function apiGet<T>(url: string): Promise<T> {
-  const res = await fetch(`${url}`, {
+  const res = await fetch(`${API_BASE}${url}`, {
     headers: { 'Content-Type': 'application/json' },
     // لو عندك توكن/كوكيز:
     // credentials: 'include',
