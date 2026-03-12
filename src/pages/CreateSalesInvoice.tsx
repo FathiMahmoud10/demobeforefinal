@@ -1119,7 +1119,7 @@ const handleSubmit = async e => {
         <Section title="بيانات الفاتورة" icon={<FileText size={16} />} accent="rose">
           <p className="text-xs text-rose-700/70">
             الحقول المميزة بـ <span className="text-rose-600 font-bold">*</span> إلزامية
-          </p>
+          </p>    
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <Field label="التاريخ" icon={<Calendar size={12} />}>
               <input value={form.date} readOnly className={cn(inputCls, 'bg-gray-50 cursor-default text-gray-500')} />
