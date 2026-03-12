@@ -46,7 +46,8 @@ interface CustomersContextType {
 const CustomersContext = createContext<CustomersContextType | undefined>(undefined);
 
 export const CustomersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-const API_BASE = "/api";
+  const API_BASE = AUTH_API_BASE || 'http://takamulerp.runasp.net';
+
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -105,7 +106,7 @@ const API_BASE = "/api";
   const reload = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/Customer`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/api/Customer`, { headers: authHeaders() });
       if (!res.ok) {
         console.warn('Failed to fetch customers. status:', res.status);
         setCustomers([]);
@@ -147,7 +148,7 @@ const API_BASE = "/api";
         isActive: payload.isActive ?? true,
       };
 
-      const res = await fetch(`${API_BASE}/Customer`, {
+      const res = await fetch(`${API_BASE}/api/Customer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(body),
@@ -162,28 +163,26 @@ const API_BASE = "/api";
     }
   };
 
-  const deleteCustomer = async (id: number): Promise<ApiResult> => {
-    try {
-      const res = await fetch(`${API_BASE}/Customer/${id}`, {
-        method: 'DELETE',
-        headers: authHeaders(),
-      });
-
-      if (!res.ok) return { ok: false, message: await parseApiError(res) };
-
-      // ✅ confirm deletion (server may lie / wrong id)
-      await reload();
-      const stillExists = customers.some((c) => c.id === id);
-      // ⚠️ customers state updates async, so check with a fresh fetch quickly:
-      if (stillExists) {
-        return { ok: false, message: 'لم يتم الحذف على السيرفر (تأكد من id الصحيح)' };
-      }
-
-      return { ok: true };
-    } catch (e) {
-      return { ok: false, message: String(e) };
+ const deleteCustomer = async (id: number): Promise<ApiResult> => {
+  try {
+    const cid = Number(id);
+    if (!Number.isFinite(cid) || cid <= 0) {
+      return { ok: false, message: 'id غير صحيح' };
     }
-  };
+
+    const res = await fetch(`${API_BASE}/api/Customer/${cid}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+
+    if (!res.ok) return { ok: false, message: await parseApiError(res) };
+
+    await reload();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: String(e) };
+  }
+};
 
   const updateCustomer = async (id: number, updates: Partial<Customer>): Promise<ApiResult> => {
     try {
@@ -206,7 +205,7 @@ const API_BASE = "/api";
         isActive: merged.isActive ?? true,
       };
 
-      const res = await fetch(`${API_BASE}/Customer/${id}`, {
+      const res = await fetch(`${API_BASE}/api/Customer/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(body),

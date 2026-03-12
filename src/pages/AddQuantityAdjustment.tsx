@@ -14,7 +14,7 @@ const AddQuantityAdjustment = () => {
   const [formData, setFormData] = useState({
     date: new Date().toLocaleString('en-GB').replace(',', ''),
     refNo: '',
-    branch: 'شركة تكامل البيانات ',
+    branch: 'شركة دقة الحلول',
     note: '',
     items: [] as any[]
   });
@@ -45,7 +45,7 @@ const AddQuantityAdjustment = () => {
       setFormData({
         date: new Date().toLocaleString('en-GB').replace(',', ''),
         refNo: '',
-        branch: 'شركة تكامل البيانات ',
+        branch: 'شركة دقة الحلول',
         note: '',
         items: []
       });
@@ -187,7 +187,7 @@ const AddQuantityAdjustment = () => {
                 <button className="bg-gray-200 text-gray-800 px-4 h-10 flex items-center justify-center rounded-md text-sm font-medium hover:bg-gray-300 transition-colors whitespace-nowrap">
                     {t('download_sample_file')}
                 </button>
-                <label className="cursor-pointer bg-primary hover:bg-primary-700 text-white px-4 h-10 flex items-center justify-center rounded-md text-sm transition-colors whitespace-nowrap">
+                <label className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-4 h-10 flex items-center justify-center rounded-md text-sm transition-colors whitespace-nowrap">
                     {t('browse')}
                     <input type="file" className="hidden" />
                 </label>
@@ -238,14 +238,15 @@ const AddQuantityAdjustment = () => {
 
         <div className="overflow-x-auto">
             <table className="w-full text-sm text-right text-black">
-                <thead className="bg-primary text-white">
+                <thead className="bg-red-800 text-white">
                     <tr>
                         <th className="p-2">اسم الصنف (كود الصنف)</th>
                         <th className="p-2">الكمية المتاحة</th>
                         <th className="p-2">نوع</th>
                         <th className="p-2">كمية</th>
                         <th className="p-2">التكلفة بدون ضريبة</th>
-                        <th className="p-2"></th>
+                        <th className="p-2">رقم السيريال</th>
+                        <th className="p-2"><input type="checkbox" onChange={handleSelectAll} checked={selectedItems.length === formData.items.length && formData.items.length > 0} className="accent-primary" /></th>
                     </tr>
                 </thead>
                 <tbody className="text-black">
@@ -287,9 +288,15 @@ const AddQuantityAdjustment = () => {
                               />
                             </td>
                             <td className="p-2">
-                     
+                              <input 
+                                type="text" 
+                                value={item.serial}
+                                onChange={(e) => handleItemChange(item.id, 'serial', e.target.value)}
+                                className="border border-gray-300 rounded-md p-1 text-sm w-full bg-white text-black" 
+                              />
                             </td>
                             <td className="p-2">
+                                <input type="checkbox" checked={selectedItems.includes(item.id)} onChange={() => handleSelectItem(item.id)} className="accent-primary" />
                             </td>
                         </tr>
                       ))
@@ -323,14 +330,14 @@ const AddQuantityAdjustment = () => {
           <button 
             onClick={handleDeleteSelected}
             disabled={selectedItems.length === 0}
-            className="bg-primary text-white px-6 py-2 rounded-md font-medium hover:bg-primary transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="bg-red-600 text-white px-6 py-2 rounded-md font-medium hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {t('delete_selected_items')}
           </button>
           <div className="flex justify-end gap-2">
             <button 
               onClick={handleComplete}
-              className="bg-primary text-white px-6 py-2 rounded-md font-medium hover:bg-primary transition-colors"
+              className="bg-red-800 text-white px-6 py-2 rounded-md font-medium hover:bg-red-900 transition-colors"
             >
               {t('complete_process')}
             </button>

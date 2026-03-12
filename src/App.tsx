@@ -6,8 +6,6 @@
 import { Routes, Route } from 'react-router-dom';
 import Login from '@/pages/Login';
 import ForgotPassword from '@/pages/ForgotPassword';
-import VerifyOTP from '@/pages/VerifyOTP';
-import ResetPassword from '@/pages/ResetPassword';
 import Dashboard from '@/pages/Dashboard';
 import ProductsList from '@/pages/ProductsList';
 import AddProduct from '@/pages/AddProduct';
@@ -34,27 +32,53 @@ import POSInvoices from '@/pages/POSInvoices';
 import POSInvoiceDetails from '@/pages/POSInvoiceDetails';
 import ReturnPOSSale from '@/pages/ReturnPOSSale';
 import GiftCards from '@/pages/GiftCards';
-import Deliveries from '@/pages/Deliveries';
 import PurchasesList from '@/pages/PurchasesList';
 import AddPurchase from '@/pages/AddPurchase';
-import EditPurchase from '@/pages/EditPurchase';
-import CustomersList from '@/pages/CustomersList';
+import AddPurchaseCSV from '@/pages/AddPurchaseCSV';
 import SuppliersList from '@/pages/SuppliersList';
 import Expenses from '@/pages/Expenses';
-import AddTaxInvoice from '@/pages/AddTaxInvoice';
-import AddSimplifiedTaxInvoice from '@/pages/AddSimplifiedTaxInvoice';
-import ImportSales from '@/pages/ImportSales';
-import ImportPurchases from '@/pages/ImportPurchases';
+import EditPurchase from '@/pages/EditPurchase';
+import CustomersList from '@/pages/CustomersList';
+import InvoiceDevices from '@/pages/InvoiceDevices';
+import AddUser from '@/pages/AddUser';
+import EditUser from '@/pages/EditUser';
+import UsersList from '@/pages/UsersList';
+import BanksList from '@/pages/BanksList';
+import ExternalTransfersList from '@/pages/ExternalTransfersList';
+import InternalTransfersList from '@/pages/InternalTransfersList';
+import SystemSettings from '@/pages/SystemSettings';
+import Promotions from '@/pages/Promotions';
+import PaymentCompanies from '@/pages/PaymentCompanies';
+import PaymentMethods from '@/pages/PaymentMethods';
+import POSSettings from '@/pages/POSSettings';
+import Currencies from '@/pages/Currencies';
+import CustomerGroups from '@/pages/CustomerGroups';
+import PriceGroups from '@/pages/PriceGroups';
+import Categories from '@/pages/Categories';
+import ExpenseCategories from '@/pages/ExpenseCategories';
+import ReceiptBonds from '@/pages/bonds/ReceiptBonds';
+import PaymentBonds from '@/pages/bonds/PaymentBonds';
+import DepositBonds from '@/pages/bonds/DepositBonds';
+import WithdrawalBonds from '@/pages/bonds/WithdrawalBonds';
+import ImportPurchases from './pages/ImportPurchases';
+import Deliveries from './pages/Deliveries';
 import Products from './lib/Products';
+import AddSimplifiedTaxInvoice from './pages/AddSimplifiedTaxInvoice';
+import AddTaxInvoice from './pages/AddTaxInvoice';
+import ImportSales from './pages/ImportSales';
+import Additions from './pages/Additions';
+import { AdditionsProvider } from './context/AdditionsContext';
+import Warehouses from './pages/Warehouses';
+import { WarehousesProvider } from './context/WarehousesContext';
+import Tables from './pages/Tables';
+import { TablesProvider } from './context/TablesContext';
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/verify-otp" element={<VerifyOTP />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      
+       
       {/* Protected Routes with Layout */}
       <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
       <Route path="/products" element={<Layout><ProductsList /></Layout>} />
@@ -77,7 +101,6 @@ export default function App() {
       <Route path="/quotes/view/:id" element={<Layout><ViewQuote /></Layout>} />
       <Route path="/sales/create-from-quote" element={<Layout><CreateSalesInvoice /></Layout>} />
       <Route path="/sales/return/:id" element={<Layout><ReturnSale /></Layout>} />
-      <Route path="/sales/pos" element={<Layout><POS /></Layout>} />
       <Route path="/sales/deliveries" element={<Layout><Deliveries /></Layout>} />
       <Route path="/purchases" element={<Layout><PurchasesList /></Layout>} />
       <Route path="/purchases/create" element={<Layout><AddPurchase /></Layout>} />
@@ -87,7 +110,31 @@ export default function App() {
       <Route path="/suppliers" element={<Layout><SuppliersList /></Layout>} />
       <Route path="/expenses" element={<Layout><Expenses /></Layout>} />
       <Route path="/products/groups" element={<Layout><Groups /></Layout>} />
-      
+
+<Route
+  path="/products/additions"
+  element={
+    <Layout>
+      <AdditionsProvider>
+        <Additions />
+      </AdditionsProvider>
+    </Layout>
+  }
+/>      
+<Route
+  path="/sales/pos"
+  element={
+    <Layout>
+      <AdditionsProvider>
+        <WarehousesProvider>
+          <TablesProvider>
+            <POS />
+          </TablesProvider>
+        </WarehousesProvider>
+      </AdditionsProvider>
+    </Layout>
+  }
+/>
       <Route path="/products" element={<Products />} />
       <Route path="/products/units" element={<Layout><Units /></Layout>} />
       <Route path="/products/quantity-adjustments" element={<Layout><QuantityAdjustments /></Layout>} />

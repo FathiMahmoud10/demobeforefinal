@@ -227,7 +227,50 @@ export default function AddPurchase() {
               </div>
             </div>
 
-            
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">
+                {t('ref_no')} *
+              </label>
+              <input 
+                type="text" 
+                value={formData.refNo}
+                onChange={(e) => setFormData({...formData, refNo: e.target.value})}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-primary"
+                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">
+                {t('purchase_invoice_type')} *
+              </label>
+              <select 
+                value={formData.purchaseType}
+                onChange={(e) => setFormData({...formData, purchaseType: e.target.value})}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-primary bg-white"
+                required
+              >
+                <option value="warehouse">{t('warehouse_purchase_invoice')}</option>
+                <option value="service">{t('service_purchase_invoice')}</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">
+                {t('status')} *
+              </label>
+              <select 
+                value={formData.status}
+                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-primary bg-white"
+                required
+              >
+                <option value="received">{t('received')}</option>
+                <option value="pending">{t('pending')}</option>
+                <option value="ordered">{t('ordered')}</option>
+              </select>
+            </div>
+
             <div className="space-y-1">
               <label className="text-sm font-medium text-gray-700">
                 {t('branch')} *
@@ -238,8 +281,8 @@ export default function AddPurchase() {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-primary bg-white"
                 required
               >
-                <option value="main">{t('اختر الفرع ')}</option>
-                <option value="branch1">{t('فرع 1')}</option>
+                <option value="main">{t('experimental')}</option>
+                <option value="branch1">{t('branch_1')}</option>
               </select>
             </div>
 
@@ -290,7 +333,7 @@ export default function AddPurchase() {
                       onChange={(e) => setFormData({...formData, supplier: e.target.value})}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-primary bg-white appearance-none"
                     >
-                      <option value="">{t('اختر المورد....')}</option>
+                      <option value="">{t('select_supplier')}</option>
                       {suppliers.map(s => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
@@ -308,7 +351,7 @@ export default function AddPurchase() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-gray-700">
-                  {t('رصيد المورد') || 'الربح المتوقع'}
+                  {t('expected_profit') || 'الربح المتوقع'}
                 </label>
                 <div className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-50 text-center font-bold">
                   0
@@ -474,7 +517,7 @@ export default function AddPurchase() {
             <div className="space-y-4">
               <div className="space-y-1">
                 <label className="text-sm font-medium text-gray-700">
-                  {t('خصم بالنسبة  (قبل الضريبة)') || 'خصم بالنسبة أو بالرقم (قبل الضريبة)'}
+                  {t('discount_before_vat') || 'خصم بالنسبة أو بالرقم (قبل الضريبة)'}
                 </label>
                 <input 
                   type="text" 
@@ -483,7 +526,7 @@ export default function AddPurchase() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-gray-700">
-                  {t('خصم بالنسبة (بعد الضريبة)') || 'خصم بالنسبة أو بالرقم (بعد الضريبة)'}
+                  {t('discount_after_vat') || 'خصم بالنسبة أو بالرقم (بعد الضريبة)'}
                 </label>
                 <input 
                   type="text" 
@@ -510,12 +553,22 @@ export default function AddPurchase() {
                   onChange={(e) => setFormData({...formData, paymentType: e.target.value})}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-primary bg-white"
                 >
-                  <option value="credit">{t('شبكه')}</option>
+                  <option value="credit">{t('credit')}</option>
                   <option value="cash">{t('cash')}</option>
                   <option value="bank">{t('bank_transfer')}</option>
                 </select>
               </div>
-           
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">
+                  {t('payment_terms') || 'شروط الدفع'}
+                </label>
+                <input 
+                  type="text" 
+                  value={formData.paymentTerms}
+                  onChange={(e) => setFormData({...formData, paymentTerms: e.target.value})}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+              </div>
             </div>
 
             <div className="space-y-4">

@@ -544,7 +544,7 @@ const API_BASE = 'http://takamulerp.runasp.net/api';
 async function apiFetch(path, options = {}) {
   try {
     const res = await fetch(`${API_BASE}${path}`, {
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...options.headers },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       mode: 'cors',
       ...options,
     });

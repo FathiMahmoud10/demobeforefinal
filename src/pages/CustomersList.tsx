@@ -26,6 +26,9 @@ import AddDepositModal from '@/components/modals/AddDepositModal';
 import AddDiscountModal from '@/components/modals/AddDiscountModal';
 import ViewPaymentsModal from '@/components/modals/ViewPaymentsModal';
 
+// ✅ Professional dropdown positioning (no design/logic changes)
+import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
+
 export default function CustomersList() {
   const { t, direction } = useLanguage();
   const isRTL = direction === 'rtl';
@@ -124,37 +127,23 @@ export default function CustomersList() {
   };
 
   // =============================
-  // ✅ Action menu positioning FIX
+  // ✅ Dropdown positioning (Professional / Safe)
   // =============================
   const actionButtonRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
 
-  const repositionMenu = (id: number) => {
-    const el = actionButtonRefs.current[id];
-    if (!el) return;
-    const rect = el.getBoundingClientRect(); // viewport coords
-    setMenuPos({
-      top: rect.bottom + 6,
-      left: rect.left,
-      width: rect.width,
-    });
-  };
+  const { x, y, strategy, refs, update } = useFloating({
+    placement: isRTL ? 'bottom-end' : 'bottom-start',
+    middleware: [offset(6), flip({ padding: 8 }), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+  });
 
   useEffect(() => {
-    if (activeActionMenu !== null) repositionMenu(activeActionMenu);
-  }, [activeActionMenu]);
-
-  useEffect(() => {
-    const onScrollOrResize = () => {
-      if (activeActionMenu !== null) repositionMenu(activeActionMenu);
-    };
-    window.addEventListener('scroll', onScrollOrResize, true);
-    window.addEventListener('resize', onScrollOrResize);
-    return () => {
-      window.removeEventListener('scroll', onScrollOrResize, true);
-      window.removeEventListener('resize', onScrollOrResize);
-    };
-  }, [activeActionMenu]);
+    if (activeActionMenu !== null) {
+      const el = actionButtonRefs.current[activeActionMenu];
+      if (el) refs.setReference(el);
+      requestAnimationFrame(() => update());
+    }
+  }, [activeActionMenu, refs, update]);
 
   // =============================
   // ✅ Delete flow (like suppliers)
@@ -172,7 +161,6 @@ export default function CustomersList() {
     const result = await deleteCustomer(id);
 
     if (result.ok) {
-      // ✅ translated toast (Arabic in RTL, English in LTR)
       const msgFromT = t('customer_deleted_successfully');
       const msg =
         msgFromT && msgFromT !== 'customer_deleted_successfully'
@@ -208,7 +196,8 @@ export default function CustomersList() {
       </div>
 
       <div className="text-sm text-gray-500 mb-2">
-        {t('customers_table_desc') || (isRTL ? 'الرجاء استخدام الجدول أدناه للتنقل أو تصفية النتائج.' : 'Use the table below to navigate or filter results.')}
+        {t('customers_table_desc') ||
+          (isRTL ? 'الرجاء استخدام الجدول أدناه للتنقل أو تصفية النتائج.' : 'Use the table below to navigate or filter results.')}
       </div>
 
       {/* Table Container */}
@@ -259,15 +248,27 @@ export default function CustomersList() {
 
                 <th className="p-3 border-l border-white/10 font-bold">{t('code') || (isRTL ? 'كود' : 'Code')}</th>
                 <th className="p-3 border-l border-white/10 font-bold">{t('name') || (isRTL ? 'اسم' : 'Name')}</th>
-                <th className="p-3 border-l border-white/10 font-bold">{t('email_address') || (isRTL ? 'عنوان البريد الإلكتروني' : 'Email')}</th>
+                <th className="p-3 border-l border-white/10 font-bold">
+                  {t('email_address') || (isRTL ? 'عنوان البريد الإلكتروني' : 'Email')}
+                </th>
                 <th className="p-3 border-l border-white/10 font-bold">{t('phone') || (isRTL ? 'هاتف' : 'Phone')}</th>
 
-                <th className="p-3 border-l border-white/10 font-bold">{t('pricing_group') || (isRTL ? 'مجموعة التسعيرة' : 'Pricing Group')}</th>
-                <th className="p-3 border-l border-white/10 font-bold">{t('customer_group') || (isRTL ? 'مجموعة العملاء' : 'Customer Group')}</th>
+                <th className="p-3 border-l border-white/10 font-bold">
+                  {t('pricing_group') || (isRTL ? 'مجموعة التسعيرة' : 'Pricing Group')}
+                </th>
+                <th className="p-3 border-l border-white/10 font-bold">
+                  {t('customer_group') || (isRTL ? 'مجموعة العملاء' : 'Customer Group')}
+                </th>
 
-                <th className="p-3 border-l border-white/10 font-bold">{t('tax_number') || (isRTL ? 'الرقم الضريبي' : 'Tax Number')}</th>
-                <th className="p-3 border-l border-white/10 font-bold">{t('actual_balance') || (isRTL ? 'الرصيد الفعلي' : 'Balance')}</th>
-                <th className="p-3 border-l border-white/10 font-bold">{t('total_points') || (isRTL ? 'إجمالي النقاط المكتسبة' : 'Total Points')}</th>
+                <th className="p-3 border-l border-white/10 font-bold">
+                  {t('tax_number') || (isRTL ? 'الرقم الضريبي' : 'Tax Number')}
+                </th>
+                <th className="p-3 border-l border-white/10 font-bold">
+                  {t('actual_balance') || (isRTL ? 'الرصيد الفعلي' : 'Balance')}
+                </th>
+                <th className="p-3 border-l border-white/10 font-bold">
+                  {t('total_points') || (isRTL ? 'إجمالي النقاط المكتسبة' : 'Total Points')}
+                </th>
 
                 <th className="p-3 font-bold text-center">{t('actions') || (isRTL ? 'الإجراءات' : 'Actions')}</th>
               </tr>
@@ -312,14 +313,27 @@ export default function CustomersList() {
 
                     <td className="p-3 text-center">
                       <button
-                        ref={(el) => (actionButtonRefs.current[customer.id] = el)}
+                        ref={(el) => {
+                          actionButtonRefs.current[customer.id] = el;
+                          if (activeActionMenu === customer.id && el) refs.setReference(el);
+                        }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveActionMenu((prev) => (prev === customer.id ? null : customer.id));
+                          setActiveActionMenu((prev) => {
+                            const next = prev === customer.id ? null : customer.id;
+                            if (next === customer.id) {
+                              const el = actionButtonRefs.current[customer.id];
+                              if (el) refs.setReference(el);
+                            }
+                            return next;
+                          });
                         }}
                         className="bg-[#2ecc71] text-white px-3 py-1.5 rounded-md text-xs flex items-center gap-1 mx-auto hover:bg-[#27ae60] transition-colors font-bold shadow-sm"
                       >
-                        <ChevronDown size={14} className={cn('transition-transform', activeActionMenu === customer.id && 'rotate-180')} />
+                        <ChevronDown
+                          size={14}
+                          className={cn('transition-transform', activeActionMenu === customer.id && 'rotate-180')}
+                        />
                         <span>{t('actions') || (isRTL ? 'الإجراءات' : 'Actions')}</span>
                       </button>
                     </td>
@@ -368,22 +382,25 @@ export default function CustomersList() {
 
       {toastOpen && <Toast isOpen={toastOpen} message={toastMsg} type={toastType} onClose={() => setToastOpen(false)} />}
 
-      {/* Action Menu Portal (fixed positioning) */}
+      {/* Action Menu Portal */}
       {createPortal(
         <AnimatePresence>
           {activeActionMenu !== null && (
             <>
               <div className="fixed inset-0 z-[9998]" onClick={() => setActiveActionMenu(null)} />
+
               <motion.div
+                ref={refs.setFloating}
                 initial={{ opacity: 0, scale: 0.95, y: -6 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -6 }}
                 style={{
-                  position: 'fixed', // ✅ FIXED (not absolute)
-                  top: menuPos.top,
-                  left: isRTL ? undefined : Math.min(menuPos.left, window.innerWidth - 240),
-                  right: isRTL ? Math.min(window.innerWidth - (menuPos.left + menuPos.width), window.innerWidth - 240) : undefined,
+                  position: strategy,
+                  top: y ?? 0,
+                  left: x ?? 0,
                   minWidth: 220,
+                  maxHeight: '70vh',
+                  overflowY: 'auto',
                 }}
                 className="z-[9999] bg-white border border-gray-200 rounded-lg shadow-2xl py-2 text-right"
               >

@@ -20,7 +20,7 @@ export default function Login() {
 
   const isDark = theme === 'dark';
 
-  const LOGIN_API = `${AUTH_API_BASE}/Auth/login`;
+  const LOGIN_API = `${AUTH_API_BASE}/api/Auth/login`;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

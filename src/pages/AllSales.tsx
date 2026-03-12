@@ -137,7 +137,7 @@ export default function AllSales() {
   const fetchSales = useCallback(() => {
     setSalesLoading(true);
     setSalesError(null);
-    fetch('http://takamulerp.runasp.net/SalesOrders', {
+    fetch('http://takamulerp.runasp.net/api/SalesOrders', {
       headers: { Accept: 'application/json' },
       mode: 'cors',
     })

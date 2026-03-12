@@ -1,4 +1,4 @@
-  import React, { useState } from 'react';
+import React, { useState } from 'react';
   import { useNavigate, useLocation } from 'react-router-dom';
   import { 
     LayoutDashboard, 
@@ -164,19 +164,19 @@
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-const headerRef = React.useRef<HTMLDivElement>(null);
+    const headerRef = React.useRef<HTMLDivElement>(null);
 
-React.useEffect(() => {
-  const handleClickOutside = (event: MouseEvent) => {
-    if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
-      setActiveDropdown(null);
-    }
-  };
-
-  document.addEventListener("mousedown", handleClickOutside);
-  return () => document.removeEventListener("mousedown", handleClickOutside);
-}, []);
+    React.useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
+          setActiveDropdown(null);
+        }
+      };
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     React.useEffect(() => {
       const checkMobile = () => setIsMobile(window.innerWidth < 1024);
@@ -185,7 +185,6 @@ React.useEffect(() => {
       return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // Mock navigation state
     const [activeMenu, setActiveMenu] = useState('dashboard');
     const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
     const [openNestedSubmenu, setOpenNestedSubmenu] = useState<string | null>(null);
@@ -193,22 +192,17 @@ React.useEffect(() => {
     const toggleSubmenu = (menu: string) => {
       if (!isSidebarOpen && !isMobile) {
         setIsSidebarOpen(true);
-        setTimeout(() => setOpenSubmenu(menu), 150); // Small delay for smooth transition
+        setTimeout(() => setOpenSubmenu(menu), 150);
       } else {
         setOpenSubmenu(openSubmenu === menu ? null : menu);
       }
     };
 
     const toggleNestedSubmenu = (menu: string) => {
-        setOpenNestedSubmenu(openNestedSubmenu === menu ? null : menu);
-    }
-const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-    // Determine if sidebar content should be fully visible (labels shown)
-    const showSidebarContent = isMobile ? true : isSidebarOpen;
+      setOpenNestedSubmenu(openNestedSubmenu === menu ? null : menu);
+    };
 
-    function setIsLanguageMenuOpen(arg0: boolean) {
-      throw new Error('Function not implemented.');
-    }
+    const showSidebarContent = isMobile ? true : isSidebarOpen;
 
     return (
       <div className="min-h-screen flex transition-colors duration-300" dir={direction}>
@@ -241,15 +235,11 @@ const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
         >
           <div className="p-4 flex items-center justify-between h-16 border-b border-[var(--border)]">
             <div className={cn("flex items-center gap-2 overflow-hidden", !showSidebarContent && "justify-center w-full")}>
-              {showSidebarContent ? (
-                  <Logo />
-              ) : (
-                  <Logo showText={false} />
-              )}
+              {showSidebarContent ? <Logo /> : <Logo showText={false} />}
             </div>
             {isMobile && (
               <button onClick={() => setIsMobileMenuOpen(false)} className="text-[var(--text-muted)] hover:text-red-500 transition-colors">
-                  <X size={24} />
+                <X size={24} />
               </button>
             )}
           </div>
@@ -284,7 +274,6 @@ const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
                   <SubmenuItem label={t('print_barcode')} icon={Tag} path="/products/barcode" />
                   <SubmenuItem label={t('quantity_adjustments')} icon={SlidersHorizontal} path="/products/quantity-adjustments" />
                   <SubmenuItem label={t('groups')} icon={Folder} path="/products/groups" />
-                  
                   <SubmenuItem label={t('units')} icon={Wrench} path="/products/units" />
                 </motion.div>
               )}
@@ -306,13 +295,9 @@ const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
                   exit={{ height: 0, opacity: 0 }}
                   className={cn("overflow-hidden space-y-1 pr-2", direction === 'rtl' ? "mr-4 border-r border-gray-100" : "ml-4 border-l border-gray-100 pl-2 pr-0")}
                 >
-                  {/* <SubmenuItem label={t('pos_quick')} icon={ShoppingCart} path="/sales/pos" /> */}
                   <SubmenuItem label={t('all_sales')} icon={List} path="/sales/all" />
                   <SubmenuItem label={t('invoices_a4')} icon={FileText} path="/sales/a4-invoices" />
                   <SubmenuItem label={t('invoices_pos')} icon={RefreshCcw} path="/sales/pos-invoices" />
-                  
-               
-
                   <SubmenuItem label={t('gift_cards')} icon={Gift} path="/sales/gift-cards" />
                 </motion.div>
               )}
@@ -362,28 +347,6 @@ const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
               )}
             </AnimatePresence>
 
-            <SidebarItem 
-              icon={RefreshCw} 
-              label={t('transfers')} 
-              hasSubmenu
-              isSidebarOpen={showSidebarContent}
-              isOpen={openSubmenu === 'transfers'}
-              onClick={() => toggleSubmenu('transfers')}
-            />
-            <AnimatePresence>
-              {openSubmenu === 'transfers' && showSidebarContent && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className={cn("overflow-hidden space-y-1 pr-2", direction === 'rtl' ? "mr-4 border-r border-gray-100" : "ml-4 border-l border-gray-100 pl-2 pr-0")}
-                >
-                  <SubmenuItem label={t('transfers_list')} icon={LayoutGrid} />
-                  <SubmenuItem label={t('add_transfer')} icon={Plus} />
-                  <SubmenuItem label={t('add_transfer_csv')} icon={PlusCircle} />
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             <SidebarItem 
               icon={Users} 
@@ -469,9 +432,8 @@ const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
                 >
                   <SubmenuItem label={t('banks_list')} icon={List} />
                   <SubmenuItem label={t('add_bank')} icon={PlusCircle} />
-                  <SubmenuItem label={t('external_transfers')} icon={List} />
-                  <SubmenuItem label={t('add_external_transfer')} icon={Plus} />
                   <SubmenuItem label={t('internal_transfers')} icon={List} />
+                  <SubmenuItem label={t('external_transfers')} icon={List} />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -496,10 +458,6 @@ const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
                   <SubmenuItem label={t('add_receipt_bond')} icon={Plus} />
                   <SubmenuItem label={t('payment_bonds')} icon={FileMinus} />
                   <SubmenuItem label={t('add_payment_bond')} icon={Minus} />
-                  {/* <SubmenuItem label={t('deposit_bonds')} icon={Building} />
-                  <SubmenuItem label={t('add_deposit_bond')} icon={Plus} />
-                  <SubmenuItem label={t('withdrawal_bonds')} icon={Building} />
-                  <SubmenuItem label={t('add_withdrawal_bond')} icon={Plus} /> */}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -569,279 +527,245 @@ const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
               </button>
               
               <div className="hidden md:flex items-center bg-white dark:bg-gray-100 rounded-lg px-3 py-2 w-64 border border-[var(--border)]">
-                  <Search size={18} className="text-gray-400 ml-2" />
-                  <input 
-                      type="text" 
-                      placeholder={t('search')}
-                      className="bg-transparent border-none outline-none text-sm w-full text-black placeholder-gray-400"
-                  />
+                <Search size={18} className="text-gray-400 ml-2" />
+                <input 
+                  type="text" 
+                  placeholder={t('search')}
+                  className="bg-transparent border-none outline-none text-sm w-full text-black placeholder-gray-400"
+                />
               </div>
-
-              
             </div>
 
             <div className="flex items-center gap-3">
               <div className="hidden md:flex items-center gap-1">
-                  {/* A4 */}
-  <button 
-    onClick={() => navigate('/sales/create')}
-    className="flex items-center gap-1.5 px-2.5 py-1 
-               text-[11px] font-medium
-               bg-blue-50 text-blue-700
-               hover:bg-blue-100
-               rounded-full
-               transition-all duration-200
-               hover:shadow-sm active:scale-95"
-  >
-    <LayoutGrid size={13} />
-    <span>{t('sales_a4_quick')}</span>
-  </button>
-
-  {/* POS */}
-  <button 
-    onClick={() => navigate('/sales/pos')}
-    className="flex items-center gap-1.5 px-2.5 py-1 
-               text-[11px] font-medium
-               bg-emerald-50 text-emerald-700
-               hover:bg-emerald-100
-               rounded-full
-               transition-all duration-200
-               hover:shadow-sm active:scale-95"
-  >
-    <ShoppingCart size={13} />
-    <span>{t('pos_quick')}</span>
-  </button>
-
-  {/* All Sales */}
-  <button 
-    onClick={() => navigate('/sales/all')}
-    className="flex items-center gap-1.5 px-2.5 py-1 
-               text-[11px] font-medium
-               bg-violet-50 text-violet-700
-               hover:bg-violet-100
-               rounded-full
-               transition-all duration-200
-               hover:shadow-sm active:scale-95"
-  >
-    <List size={13} />
-    <span>{t('all_sales')}</span>
-  </button>
-                  {/* <button 
-                      onClick={() => navigate('/products/create')}
-                      className="flex items-center gap-0.5 px-1.5 py-0.5 text-white bg-red-700 hover:bg-red-800 rounded-md transition-colors text-[9px] font-medium shadow-sm"
-                  >
-                      <span>{t('add_product')}</span>
-                      <Package size={10} />
-                  </button> */}
+                <button 
+                  onClick={() => navigate('/sales/create')}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-full transition-all duration-200 hover:shadow-sm active:scale-95"
+                >
+                  <LayoutGrid size={13} />
+                  <span>{t('sales_a4_quick')}</span>
+                </button>
+                <button 
+                  onClick={() => navigate('/sales/pos')}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-full transition-all duration-200 hover:shadow-sm active:scale-95"
+                >
+                  <ShoppingCart size={13} />
+                  <span>{t('pos_quick')}</span>
+                </button>
+                <button 
+                  onClick={() => navigate('/sales/all')}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium bg-violet-50 text-violet-700 hover:bg-violet-100 rounded-full transition-all duration-200 hover:shadow-sm active:scale-95"
+                >
+                  <List size={13} />
+                  <span>{t('all_sales')}</span>
+                </button>
               </div>
 
-              {/* Notification Panel */}
+              {/* Notifications */}
               <div className="relative">
-                  <button 
-                   onClick={() =>
-  setActiveDropdown(activeDropdown === "notifications" ? null : "notifications")
-}
-                    className="p-2 text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--bg-main)] rounded-full relative"
-                  >
-                      <Bell size={20} />
-                      <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                  </button>
-                  <AnimatePresence>
-{activeDropdown === "notifications" && (
-                        <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className={cn(
-                          "absolute mt-2 w-80 bg-[var(--bg-card)] rounded-lg shadow-lg border border-[var(--border)] py-2 z-50",
-                          "fixed inset-x-4 top-20 sm:absolute sm:inset-auto sm:mt-2 sm:w-80",
-                          direction === 'rtl' ? "sm:left-0" : "sm:right-0"
-                        )}
-                      >
-                        <div className="px-4 py-2 border-b border-[var(--border)] flex justify-between items-center">
-                          <h3 className="font-bold text-[var(--text-main)]">{t('notifications')}</h3>
-                          <span className="text-xs text-[var(--text-muted)] cursor-pointer hover:text-[var(--primary)]">{t('view_all')}</span>
-                        </div>
-                        <div className="max-h-64 overflow-y-auto">
-                          <div className="px-4 py-3 hover:bg-[var(--bg-main)] cursor-pointer border-b border-[var(--border)] last:border-0">
-                            <div className="flex items-start gap-3">
-                              <div className="bg-blue-100 p-2 rounded-full text-blue-600 mt-1">
-                                <ShoppingCart size={16} />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-[var(--text-main)]">{t('new_order')}</p>
-                                <p className="text-xs text-[var(--text-muted)] mt-1">{t('order_desc')}</p>
-                              </div>
+                <button 
+                  onClick={() => setActiveDropdown(activeDropdown === "notifications" ? null : "notifications")}
+                  className="p-2 text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--bg-main)] rounded-full relative"
+                >
+                  <Bell size={20} />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                <AnimatePresence>
+                  {activeDropdown === "notifications" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className={cn(
+                        "absolute mt-2 w-80 bg-[var(--bg-card)] rounded-lg shadow-lg border border-[var(--border)] py-2 z-50",
+                        "fixed inset-x-4 top-20 sm:absolute sm:inset-auto sm:mt-2 sm:w-80",
+                        direction === 'rtl' ? "sm:left-0" : "sm:right-0"
+                      )}
+                    >
+                      <div className="px-4 py-2 border-b border-[var(--border)] flex justify-between items-center">
+                        <h3 className="font-bold text-[var(--text-main)]">{t('notifications')}</h3>
+                        <span className="text-xs text-[var(--text-muted)] cursor-pointer hover:text-[var(--primary)]">{t('view_all')}</span>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto">
+                        <div className="px-4 py-3 hover:bg-[var(--bg-main)] cursor-pointer border-b border-[var(--border)] last:border-0">
+                          <div className="flex items-start gap-3">
+                            <div className="bg-blue-100 p-2 rounded-full text-blue-600 mt-1">
+                              <ShoppingCart size={16} />
                             </div>
-                          </div>
-                          <div className="px-4 py-3 hover:bg-[var(--bg-main)] cursor-pointer border-b border-[var(--border)] last:border-0">
-                            <div className="flex items-start gap-3">
-                              <div className="bg-green-100 p-2 rounded-full text-green-600 mt-1">
-                                <RefreshCw size={16} />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-[var(--text-main)]">{t('system_update')}</p>
-                                <p className="text-xs text-[var(--text-muted)] mt-1">{t('update_desc')}</p>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="px-4 py-3 hover:bg-[var(--bg-main)] cursor-pointer border-b border-[var(--border)] last:border-0">
-                            <div className="flex items-start gap-3">
-                              <div className="bg-yellow-100 p-2 rounded-full text-yellow-600 mt-1">
-                                <Package size={16} />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-[var(--text-main)]">{t('low_stock')}</p>
-                                <p className="text-xs text-[var(--text-muted)] mt-1">{t('stock_desc')}</p>
-                              </div>
+                            <div>
+                              <p className="text-sm font-medium text-[var(--text-main)]">{t('new_order')}</p>
+                              <p className="text-xs text-[var(--text-muted)] mt-1">{t('order_desc')}</p>
                             </div>
                           </div>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        <div className="px-4 py-3 hover:bg-[var(--bg-main)] cursor-pointer border-b border-[var(--border)] last:border-0">
+                          <div className="flex items-start gap-3">
+                            <div className="bg-green-100 p-2 rounded-full text-green-600 mt-1">
+                              <RefreshCw size={16} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-[var(--text-main)]">{t('system_update')}</p>
+                              <p className="text-xs text-[var(--text-muted)] mt-1">{t('update_desc')}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="px-4 py-3 hover:bg-[var(--bg-main)] cursor-pointer border-b border-[var(--border)] last:border-0">
+                          <div className="flex items-start gap-3">
+                            <div className="bg-yellow-100 p-2 rounded-full text-yellow-600 mt-1">
+                              <Package size={16} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-[var(--text-main)]">{t('low_stock')}</p>
+                              <p className="text-xs text-[var(--text-muted)] mt-1">{t('stock_desc')}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
               
-              {/* Theme Panel */}
+              {/* Theme */}
               <div className="relative">
-                  <button 
-onClick={() =>
-  setActiveDropdown(activeDropdown === "theme" ? null : "theme")
-}                    className="p-2 text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--bg-main)] rounded-full"
-                  >
-                      {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
-                  </button>
-                  <AnimatePresence>
-{activeDropdown === "theme" && (                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className={cn(
-                          "absolute mt-2 w-40 bg-[var(--bg-card)] rounded-lg shadow-lg border border-[var(--border)] py-1 z-50",
-                          "fixed inset-x-4 top-20 sm:absolute sm:inset-auto sm:mt-2 sm:w-40",
-                          direction === 'rtl' ? "sm:left-0" : "sm:right-0"
-                        )}
+                <button 
+                  onClick={() => setActiveDropdown(activeDropdown === "theme" ? null : "theme")}
+                  className="p-2 text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--bg-main)] rounded-full"
+                >
+                  {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
+                </button>
+                <AnimatePresence>
+                  {activeDropdown === "theme" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className={cn(
+                        "absolute mt-2 w-40 bg-[var(--bg-card)] rounded-lg shadow-lg border border-[var(--border)] py-1 z-50",
+                        "fixed inset-x-4 top-20 sm:absolute sm:inset-auto sm:mt-2 sm:w-40",
+                        direction === 'rtl' ? "sm:left-0" : "sm:right-0"
+                      )}
+                    >
+                      <button 
+                        onClick={() => { if(theme !== 'light') toggleTheme(); setActiveDropdown(null); }}
+                        className="w-full text-right px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--bg-main)] flex items-center justify-between"
                       >
-                        <button 
-                          onClick={() => { if(theme !== 'light') toggleTheme(); setIsMobileMenuOpen(false); }}
-                          className="w-full text-right px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--bg-main)] flex items-center justify-between"
-                        >
-                          <div className="flex items-center gap-2">
-                              <Sun size={16} />
-                              <span>{t('light_mode')}</span>
-                          </div>
-                          {theme === 'light' && <Check size={16} className="text-[var(--primary)]" />}
-                        </button>
-                        <button 
-                          onClick={() => { if(theme !== 'dark') toggleTheme(); setIsMobileMenuOpen(false); }}
-                          className="w-full text-right px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--bg-main)] flex items-center justify-between"
-                        >
-                          <div className="flex items-center gap-2">
-                              <Moon size={16} />
-                              <span>{t('dark_mode')}</span>
-                          </div>
-                          {theme === 'dark' && <Check size={16} className="text-[var(--primary)]" />}
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        <div className="flex items-center gap-2">
+                          <Sun size={16} />
+                          <span>{t('light_mode')}</span>
+                        </div>
+                        {theme === 'light' && <Check size={16} className="text-[var(--primary)]" />}
+                      </button>
+                      <button 
+                        onClick={() => { if(theme !== 'dark') toggleTheme(); setActiveDropdown(null); }}
+                        className="w-full text-right px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--bg-main)] flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Moon size={16} />
+                          <span>{t('dark_mode')}</span>
+                        </div>
+                        {theme === 'dark' && <Check size={16} className="text-[var(--primary)]" />}
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              {/* Language Panel */}
+              {/* Language */}
               <div className="relative">
-                  <button 
-onClick={() =>
-  setActiveDropdown(activeDropdown === "language" ? null : "language")
-}                    className="p-2 text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--bg-main)] rounded-full"
-                  >
-                      <Globe size={20} />
-                  </button>
-                  <AnimatePresence>
-{activeDropdown === "language" && (                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className={cn(
-                          "absolute mt-2 w-40 bg-[var(--bg-card)] rounded-lg shadow-lg border border-[var(--border)] py-1 z-50",
-                          "fixed inset-x-4 top-20 sm:absolute sm:inset-auto sm:mt-2 sm:w-40",
-                          direction === 'rtl' ? "sm:left-0" : "sm:right-0"
-                        )}
+                <button 
+                  onClick={() => setActiveDropdown(activeDropdown === "language" ? null : "language")}
+                  className="p-2 text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--bg-main)] rounded-full"
+                >
+                  <Globe size={20} />
+                </button>
+                <AnimatePresence>
+                  {activeDropdown === "language" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className={cn(
+                        "absolute mt-2 w-40 bg-[var(--bg-card)] rounded-lg shadow-lg border border-[var(--border)] py-1 z-50",
+                        "fixed inset-x-4 top-20 sm:absolute sm:inset-auto sm:mt-2 sm:w-40",
+                        direction === 'rtl' ? "sm:left-0" : "sm:right-0"
+                      )}
+                    >
+                      <button 
+                        onClick={() => { setLanguage('ar'); setActiveDropdown(null); }}
+                        className="w-full text-right px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--bg-main)] flex items-center justify-between"
                       >
-                        <button 
-                          onClick={() => { setLanguage('ar'); setIsLanguageMenuOpen(false); }}
-                          className="w-full text-right px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--bg-main)] flex items-center justify-between"
-                        >
-                          <span>{t('arabic')}</span>
-                          {language === 'ar' && <Check size={16} className="text-[var(--primary)]" />}
-                        </button>
-                        <button 
-                          onClick={() => { setLanguage('en'); setIsLanguageMenuOpen(false); }}
-                          className="w-full text-right px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--bg-main)] flex items-center justify-between"
-                        >
-                          <span>{t('english')}</span>
-                          {language === 'en' && <Check size={16} className="text-[var(--primary)]" />}
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        <span>{t('arabic')}</span>
+                        {language === 'ar' && <Check size={16} className="text-[var(--primary)]" />}
+                      </button>
+                      <button 
+                        onClick={() => { setLanguage('en'); setActiveDropdown(null); }}
+                        className="w-full text-right px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--bg-main)] flex items-center justify-between"
+                      >
+                        <span>{t('english')}</span>
+                        {language === 'en' && <Check size={16} className="text-[var(--primary)]" />}
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               <div className="h-8 w-px bg-[var(--border)] mx-1"></div>
 
+              {/* User */}
               <div className="relative">
-                  <button 
-onClick={() =>
-  setActiveDropdown(activeDropdown === "user" ? null : "user")
-}                    className="flex items-center gap-2 p-1 hover:bg-[var(--bg-main)] rounded-lg"
-                  >
-                      <img 
-                          src="https://picsum.photos/seed/avatar/100/100" 
-                          alt="User" 
-                          className="w-8 h-8 rounded-full border border-[var(--border)]"
-                      />
-                      <div className="hidden md:block text-right">
-                          <p className="text-sm font-medium text-[var(--text-main)]">{t('admin')}</p>
-                          <p className="text-xs text-[var(--text-muted)]">Admin</p>
-                      </div>
-                      <ChevronDown size={16} className="text-[var(--text-muted)]" />
-                  </button>
-                  
-                  <AnimatePresence>
-{activeDropdown === "user" && (                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className={cn("absolute mt-2 w-48 bg-[var(--bg-card)] rounded-lg shadow-lg border border-[var(--border)] py-1 z-50", direction === 'rtl' ? "left-0" : "right-0")}
+                <button 
+                  onClick={() => setActiveDropdown(activeDropdown === "user" ? null : "user")}
+                  className="flex items-center gap-2 p-1 hover:bg-[var(--bg-main)] rounded-lg"
+                >
+                  <img 
+                    src="https://picsum.photos/seed/avatar/100/100" 
+                    alt="User" 
+                    className="w-8 h-8 rounded-full border border-[var(--border)]"
+                  />
+                  <div className="hidden md:block text-right">
+                    <p className="text-sm font-medium text-[var(--text-main)]">{t('admin')}</p>
+                    <p className="text-xs text-[var(--text-muted)]">Admin</p>
+                  </div>
+                  <ChevronDown size={16} className="text-[var(--text-muted)]" />
+                </button>
+                
+                <AnimatePresence>
+                  {activeDropdown === "user" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className={cn("absolute mt-2 w-48 bg-[var(--bg-card)] rounded-lg shadow-lg border border-[var(--border)] py-1 z-50", direction === 'rtl' ? "left-0" : "right-0")}
+                    >
+                      <button className="w-full text-right px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--bg-main)] flex items-center gap-2">
+                        <Users size={16} />
+                        {t('profile')}
+                      </button>
+                      <button className="w-full text-right px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--bg-main)] flex items-center gap-2">
+                        <Settings size={16} />
+                        {t('settings')}
+                      </button>
+                      <div className="h-px bg-[var(--border)] my-1"></div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          localStorage.removeItem('takamul_token');
+                          localStorage.removeItem('takamul_refresh_token');
+                          navigate('/');
+                        }}
+                        className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                       >
-                        <button className="w-full text-right px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--bg-main)] flex items-center gap-2">
-                          <Users size={16} />
-                          {t('profile')}
-                        </button>
-                        <button className="w-full text-right px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--bg-main)] flex items-center gap-2">
-                          <Settings size={16} />
-                          {t('settings')}
-                        </button>
-                        <div className="h-px bg-[var(--border)] my-1"></div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            localStorage.removeItem('takamul_token');
-                            localStorage.removeItem('takamul_refresh_token');
-                            navigate('/');
-                          }}
-                          className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                        >
-                          <LogOut size={16} />
-                          {t('logout')}
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        <LogOut size={16} />
+                        {t('logout')}
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </header>
 
-          {/* Page Content */}
           {/* Page Content */}
           <main className="flex-1 p-4 lg:p-8 overflow-y-auto">
             {location.pathname === '/dashboard' && <WelcomeBanner />}

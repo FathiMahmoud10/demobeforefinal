@@ -1,15 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useCustomers } from '@/context/CustomersContext';
-import { useLanguage } from '@/context/LanguageContext';
-import Toast from '../Toast';
-// import Toast from './Toast';
+import React, { useEffect, useState } from "react";
+import { X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useCustomers } from "@/context/CustomersContext";
+import { useLanguage } from "@/context/LanguageContext";
+import Toast from "../Toast";
 
 interface EditCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  customer: any; // لو عندك type Customer استخدميه بدل any
+  customer: any;
 }
 
 export default function EditCustomerModal({ isOpen, onClose, customer }: EditCustomerModalProps) {
@@ -17,101 +16,106 @@ export default function EditCustomerModal({ isOpen, onClose, customer }: EditCus
   const { updateCustomer } = useCustomers();
 
   const [formData, setFormData] = useState({
-    // UI fields
-    name: '',
-    email: '',
-    phone: '',
-    pricingGroup: 'عام',
-    customerGroup: 'عام',
-    taxNumber: '',
+    name: "",
+    email: "",
+    phone: "",
+    pricingGroup: "عام",
+    customerGroup: "عام",
+    taxNumber: "",
     actualBalance: 0,
-    commercialRegister: '',
+    commercialRegister: "",
     creditLimit: 0,
     stopSellingOverdue: false,
     isTaxable: false,
 
-    // ✅ API required fields
-    address: '',
-    city: '',
-    state: '',
-    postalCode: '',
+    address: "",
+    city: "",
+    state: "",
+    postalCode: "",
     isActive: true,
   });
 
   const [toastOpen, setToastOpen] = useState(false);
-  const [toastMsg, setToastMsg] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [toastMsg, setToastMsg] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error">("success");
   const [submitting, setSubmitting] = useState(false);
 
-  const showToast = (type: 'success' | 'error', msg: string) => {
+  const showToast = (type: "success" | "error", msg: string) => {
     setToastType(type);
     setToastMsg(msg);
     setToastOpen(true);
   };
 
   useEffect(() => {
-    if (!customer) return;
+    if (!customer || !isOpen) return;
 
-    // ✅ لو الـ customer جاي من API بأسماء مختلفة
-    const name = customer.name ?? customer.customerName ?? '';
-    const email = customer.email ?? '';
-    const phone = customer.phone ?? customer.mobile ?? '';
-    const taxNumber = customer.taxNumber ?? '';
+    const name = customer.name ?? customer.customerName ?? "";
+    const email = customer.email ?? "";
+    const phone = customer.phone ?? customer.mobile ?? "";
+    const taxNumber = customer.taxNumber ?? "";
 
     setFormData({
       name,
       email,
       phone,
-      pricingGroup: customer.pricingGroup || 'عام',
-      customerGroup: customer.customerGroup || 'عام',
+      pricingGroup: customer.pricingGroup || "عام",
+      customerGroup: customer.customerGroup || "عام",
       taxNumber,
       actualBalance: customer.actualBalance || 0,
-      commercialRegister: customer.commercialRegister || '',
+      commercialRegister: customer.commercialRegister || "",
       creditLimit: customer.creditLimit || 0,
       stopSellingOverdue: customer.stopSellingOverdue || false,
       isTaxable: !!taxNumber,
 
-      // ✅ required API fields (لازم يتعبّوا)
-      address: customer.address ?? '',
-      city: customer.city ?? '',
-      state: customer.state ?? '',
-      postalCode: customer.postalCode ?? '',
+      address: customer.address ?? "",
+      city: customer.city ?? "",
+      state: customer.state ?? "",
+      postalCode: customer.postalCode ?? "",
       isActive: customer.isActive ?? true,
     });
-  }, [customer]);
+  }, [customer, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customer || submitting) return;
 
-    // ✅ validation سريع قبل الإرسال
+    const id = customer?.id ?? customer?.customerId ?? customer?._id;
+    if (!id) {
+      showToast("error", "Customer id is missing");
+      return;
+    }
+
     const address = formData.address.trim();
     const city = formData.city.trim();
     const state = formData.state.trim();
 
     if (!address || !city || !state) {
-      showToast('error', 'العنوان + المدينة + المحافظة/الولاية حقول إجبارية');
+      showToast("error", "العنوان + المدينة + المحافظة/الولاية حقول إجبارية");
+      return;
+    }
+
+    if (formData.isTaxable && !formData.taxNumber.trim()) {
+      showToast("error", "الرقم الضريبي مطلوب");
       return;
     }
 
     setSubmitting(true);
 
-    // ✅ updates اللي هتتبعت للـ API (Context هيحوّلها لصيغة API)
     const updates = {
-      // الـ API محتاج customerName
+      // ✅ API mapping
       customerName: formData.name.trim(),
       email: formData.email.trim(),
       phone: formData.phone.trim(),
       mobile: formData.phone.trim(),
-      taxNumber: formData.isTaxable ? formData.taxNumber.trim() : '',
+      taxNumber: formData.isTaxable ? formData.taxNumber.trim() : "",
 
       address,
       city,
       state,
       postalCode: formData.postalCode.trim(),
-      isActive: true,
+      isActive: formData.isActive,
 
-      // UI-only fields (لو عندك بتستخدميهم داخليًا)
+      // UI-only (لو بتحتاجها داخليًا)
       pricingGroup: formData.pricingGroup,
       customerGroup: formData.customerGroup,
       actualBalance: formData.actualBalance,
@@ -122,16 +126,16 @@ export default function EditCustomerModal({ isOpen, onClose, customer }: EditCus
     };
 
     try {
-      const res = await updateCustomer(customer.id, updates as any);
+      const res = await updateCustomer(id, updates as any);
 
-      if (res?.ok) {
-        showToast('success', t('operation_completed_successfully') || 'تم التعديل بنجاح');
-        setTimeout(() => onClose(), 500);
+      if (res?.ok || res === true) {
+        showToast("success", t("operation_completed_successfully") || "تم التعديل بنجاح");
+        setTimeout(() => onClose(), 400);
       } else {
-        showToast('error', res?.message || 'فشل التعديل');
+        showToast("error", res?.message || "فشل التعديل");
       }
-    } catch (err) {
-      showToast('error', 'فشل التعديل');
+    } catch {
+      showToast("error", "فشل التعديل");
     } finally {
       setSubmitting(false);
     }
@@ -141,7 +145,7 @@ export default function EditCustomerModal({ isOpen, onClose, customer }: EditCus
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-md" dir={direction}>
+      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-md" dir={direction}>
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -154,7 +158,7 @@ export default function EditCustomerModal({ isOpen, onClose, customer }: EditCus
               <X size={24} />
             </button>
             <div className="flex items-center gap-2 text-[#2ecc71]">
-              <h2 className="text-xl font-bold">{t('edit_customer') || 'تعديل العميل'}</h2>
+              <h2 className="text-xl font-bold">{t("edit_customer") || "تعديل العميل"}</h2>
             </div>
           </div>
 
@@ -163,20 +167,21 @@ export default function EditCustomerModal({ isOpen, onClose, customer }: EditCus
               برجاء ادخال المعلومات أدناه. تسميات الحقول التي تحمل علامة * هي حقول اجبارية .
             </p>
 
-            {/* Customer Type Selection */}
+            {/* Customer Type */}
             <div className="bg-[#fff9e6] p-4 rounded-xl border border-[#ffeeba] space-y-3">
               <p className="text-center font-bold text-[#856404]">برجاء تحديد نوع العميل</p>
-              <div className="flex justify-center gap-8">
+              <div className="flex justify-center gap-8 flex-wrap">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
                     name="isTaxable"
                     checked={!formData.isTaxable}
-                    onChange={() => setFormData({ ...formData, isTaxable: false, taxNumber: '' })}
+                    onChange={() => setFormData({ ...formData, isTaxable: false, taxNumber: "" })}
                     className="w-4 h-4 accent-[#2ecc71]"
                   />
                   <span className="text-sm font-medium text-gray-700">فرد / شركة (غير مسجل بالضريبة)</span>
                 </label>
+
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
@@ -190,7 +195,7 @@ export default function EditCustomerModal({ isOpen, onClose, customer }: EditCus
               </div>
             </div>
 
-            {/* Form Grid */}
+            {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* UI block */}
               <div className="space-y-4 border border-gray-100 p-4 rounded-xl">
@@ -280,9 +285,19 @@ export default function EditCustomerModal({ isOpen, onClose, customer }: EditCus
                     className="w-4 h-4 accent-[#2ecc71]"
                   />
                 </div>
+
+                <div className="flex items-center gap-2 justify-end">
+                  <span className="text-sm font-bold text-[#2ecc71]">{t("active") || "نشط"}</span>
+                  <input
+                    type="checkbox"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    className="w-4 h-4 accent-[#2ecc71]"
+                  />
+                </div>
               </div>
 
-              {/* ✅ API required block */}
+              {/* API required block */}
               <div className="space-y-4 border border-gray-100 p-4 rounded-xl">
                 <Field label="العنوان *">
                   <input
@@ -327,7 +342,7 @@ export default function EditCustomerModal({ isOpen, onClose, customer }: EditCus
                   <Field label="الرقم الضريبي *">
                     <input
                       type="text"
-                      required={formData.isTaxable}
+                      required
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71]"
                       value={formData.taxNumber}
                       onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })}
@@ -337,21 +352,21 @@ export default function EditCustomerModal({ isOpen, onClose, customer }: EditCus
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit */}
             <div className="flex justify-end pt-4">
               <button
                 type="submit"
                 disabled={submitting}
                 className="bg-[#00a65a] text-white px-10 py-2.5 rounded-lg font-bold hover:bg-[#008d4c] transition-colors shadow-md disabled:opacity-60"
               >
-                {submitting ? 'جارٍ الحفظ...' : 'تعديل العميل'}
+                {submitting ? "جارٍ الحفظ..." : "حفظ التعديلات"}
               </button>
             </div>
           </form>
         </motion.div>
-      </div>
 
-      <Toast isOpen={toastOpen} message={toastMsg} type={toastType} onClose={() => setToastOpen(false)} />
+        <Toast isOpen={toastOpen} message={toastMsg} type={toastType} onClose={() => setToastOpen(false)} />
+      </div>
     </AnimatePresence>
   );
 }

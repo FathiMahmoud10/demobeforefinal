@@ -22,7 +22,8 @@ export const GroupsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return saved ? JSON.parse(saved) : [];
   });
 
-const API_BASE = "/api";
+  const API_BASE = AUTH_API_BASE || 'http://takamulerp.runasp.net';
+
   useEffect(() => {
     localStorage.setItem('takamul_groups', JSON.stringify(groups));
   }, [groups]);
@@ -32,7 +33,7 @@ const API_BASE = "/api";
     try {
       const token = localStorage.getItem('takamul_token');
       // GET should hit the base collection endpoint, not the CREATE action
-      const url = `${API_BASE}/ProductCategories`;
+      const url = `${API_BASE}/api/ProductCategories`;
       console.debug('GroupsContext.loadFromApi calling GET', url);
       const res = await fetch(url, {
         headers: {
@@ -99,7 +100,7 @@ const API_BASE = "/api";
     }
 
     // Remove trailing slash or ensure exact URL
-    const url = `${API_BASE}/ProductCategories/CREATE`.replace(/\/+$/, '');
+    const url = `${API_BASE}/api/ProductCategories/CREATE`.replace(/\/+$/, '');
 
     // log each entry in case the server rejects unexpected/missing fields
     console.debug('GroupsContext.addGroup submitting form data:');
@@ -158,7 +159,7 @@ const API_BASE = "/api";
 
   const deleteGroup = async (id: number) => {
     const token = localStorage.getItem('takamul_token');
-    const url = `${API_BASE}/ProductCategories/${id}`;
+    const url = `${API_BASE}/api/ProductCategories/${id}`;
     console.debug('deleteGroup calling DELETE', url);
 
     const res = await fetch(url, {

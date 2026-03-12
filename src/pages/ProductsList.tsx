@@ -1,598 +1,610 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+// src/pages/ProductsList.tsx
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Printer,
-  FileText,
-  Search,
-  ChevronDown,
-  Edit,
-  Plus,
-  Upload,
-  Barcode,
-  Trash2,
-  X,
-  Copy,
-  DollarSign,
-  Menu,
-  PlusCircle,
-  FileSpreadsheet,
-  Download
+    Search, Edit2, Trash2, ChevronDown, Plus, Box, Package, Layers, X, Link2, FolderPlus
 } from 'lucide-react';
-import Layout from '../components/Layout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLanguage } from '../context/LanguageContext';
-import { useProducts, Product } from '../context/ProductsContext';
-import ProductDetailsModal from '../components/ProductDetailsModal';
+import { cn } from '@/lib/utils';
+import MobileDataCard from '@/components/MobileDataCard';
+import { useLanguage } from '@/context/LanguageContext';
+import { useProducts, type Product } from '@/context/ProductsContext';
 
 export default function ProductsList() {
-  const navigate = useNavigate();
-  const { t, direction } = useLanguage();
-  const { products, addProduct, deleteProduct, deleteMultipleProducts } = useProducts();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showPriceUpdate, setShowPriceUpdate] = useState(false);
-  const [showBranchPrices, setShowBranchPrices] = useState<Product | null>(null);
-  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
-  const [openActionId, setOpenActionId] = useState<number | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number, left: number } | null>(null);
-  const actionMenuRef = useRef<HTMLDivElement>(null);
-  const [selectedProductDetails, setSelectedProductDetails] = useState<Product | null>(null);
-  const [showBulkActions, setShowBulkActions] = useState(false);
-  const bulkActionsRef = useRef<HTMLDivElement>(null);
+    const { direction } = useLanguage();
+    const { products, deleteProduct, updateProduct, loading } = useProducts();
+    const navigate = useNavigate();
+    const location = useLocation();
 
-  const productsList = products;
+    const [activeTab, setActiveTab] = useState<'basic' | 'sub' | 'prepared' | 'materials'>('basic');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [extraSearchTerm, setExtraSearchTerm] = useState('');
+    const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
+    const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showLinkModal, setShowLinkModal] = useState(false);
+    const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+    const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
-  // Close menus when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
-        setOpenActionId(null);
-        setMenuPosition(null);
-      }
-      if (bulkActionsRef.current && !bulkActionsRef.current.contains(event.target as Node)) {
-        setShowBulkActions(false);
-      }
+    useEffect(() => {
+        if (location.state?.refreshed) {
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            if (!target.closest('.action-menu-container') && !target.closest('.action-menu-dropdown')) {
+                setActiveActionMenu(null);
+            }
+        };
+        window.addEventListener('click', handleClickOutside);
+        return () => window.removeEventListener('click', handleClickOutside);
+    }, []);
+
+    // ==========================================
+    // 🚀 دوال مساعدة
+    // ==========================================
+
+    const getParentChildrenIds = (parent: any) => {
+        let ids: string[] = [];
+        if (!parent) return ids;
+
+        // القراءة الصريحة من الحقل اللي حفظناه في صفحة الإضافة
+        const childrenArray = parent.subProducts || parent.linkedProducts || [];
+        if (Array.isArray(childrenArray)) {
+            childrenArray.forEach((sub: any) => {
+                if (typeof sub === 'string') ids.push(sub);
+                else if (sub && sub.id) ids.push(String(sub.id));
+            });
+        }
+        return ids;
     };
 
-    const handleScroll = () => {
-      if (openActionId !== null) {
-        setOpenActionId(null);
-        setMenuPosition(null);
-      }
+    // ✅✅ الدالة السحرية لعرض الأصناف التابعة في الجدول
+    const getChildrenNames = (parentItem: any) => {
+        // 1. القراءة المباشرة من المصفوفة اللي تم حفظها في صفحة الإضافة
+        const childrenArray = parentItem.subProducts || parentItem.linkedProducts || [];
+
+        if (Array.isArray(childrenArray) && childrenArray.length > 0) {
+            return (
+                <div className="flex flex-wrap gap-1.5">
+                    {childrenArray.map((c: any, idx: number) => {
+                        // بنسحب الاسم سواء كان محفوظة كـ Object أو كـ String
+                        const childName = typeof c === 'object' ? c.name : c;
+                        if (!childName) return null;
+                        
+                        return (
+                            <span key={idx} className="px-2 py-1 text-xs bg-orange-50 text-orange-700 border border-orange-100 rounded-md font-medium">
+                                {childName}
+                            </span>
+                        );
+                    })}
+                </div>
+            );
+        }
+
+        // 2. كود احتياطي: لو مفيش مصفوفة، ندور في الأصناف المباشرة مين بيشاور على الأب ده
+        const parentId = String(parentItem.id).trim();
+        const childrenList = (products || []).filter((p: Product) => {
+            return String(p.parentProductId) === parentId || p.parentProductName === parentItem.name;
+        });
+
+        if (childrenList.length > 0) {
+            return (
+                <div className="flex flex-wrap gap-1.5">
+                    {childrenList.map((c: Product, idx: number) => (
+                        <span key={idx} className="px-2 py-1 text-xs bg-orange-50 text-orange-700 border border-orange-100 rounded-md font-medium">
+                            {c.name}
+                        </span>
+                    ))}
+                </div>
+            );
+        }
+
+        return <span className="text-gray-400 text-sm">لا توجد أصناف تابعة</span>;
+    };
+    // ==========================================
+
+    const directProductsList = (products || []).filter((p: Product) => p.productNature === 'basic' || !p.productNature);
+    const subProductsList = (products || []).filter((p: Product) => p.productNature === 'sub');
+    const preparedProductsList = (products || []).filter((p: Product) => p.productNature === 'prepared');
+    const materialsProductsList = (products || []).filter((p: Product) => p.productNature === 'materials');
+
+    const activeData = activeTab === 'basic' ? directProductsList :
+        activeTab === 'sub' ? subProductsList :
+            activeTab === 'prepared' ? preparedProductsList : materialsProductsList;
+
+    const currentTableData = activeData.filter((item: Product) => {
+        const nameMatch = (item?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const codeMatch = (item?.code || '').toLowerCase().includes(searchTerm.toLowerCase());
+        
+        // 🚀 تم إزالة شرط الحذف! الأصناف المباشرة هتفضل ظاهرة في جدولها حتى لو كانت مربوطة بمتفرع
+        
+        return nameMatch || codeMatch;
+    });
+
+    const availableDirectProducts = directProductsList.filter((item: Product) =>
+        (item?.name || '').toLowerCase().includes(extraSearchTerm.toLowerCase()) ||
+        (item?.category || '').toLowerCase().includes(extraSearchTerm.toLowerCase())
+    );
+
+    const availableSubAsCategories = subProductsList.filter((item: Product) =>
+        (item?.name || '').toLowerCase().includes(extraSearchTerm.toLowerCase())
+    );
+
+    // Handlers
+    const openDeleteModal = (id: string) => {
+        setSelectedProductId(id);
+        setShowDeleteModal(true);
+        setActiveActionMenu(null);
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    window.addEventListener('scroll', handleScroll, { capture: true });
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('scroll', handleScroll, { capture: true });
+    const confirmDelete = async () => {
+        if (selectedProductId && deleteProduct) {
+            await deleteProduct(selectedProductId);
+        }
+        setShowDeleteModal(false);
     };
-  }, [openActionId]);
 
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedProducts(productsList.map(p => p.id));
-    } else {
-      setSelectedProducts([]);
-    }
-  };
+    const handleEditProduct = (product: Product) => {
+        navigate(`/products/edit/${product.id}`, {
+            state: { productNature: activeTab, productData: product }
+        });
+    };
 
-  const handleSelectProduct = (id: number) => {
-    if (selectedProducts.includes(id)) {
-      setSelectedProducts(selectedProducts.filter(pId => pId !== id));
-    } else {
-      setSelectedProducts([...selectedProducts, id]);
-    }
-  };
+    const openLinkModal = (id: string) => {
+        setSelectedProductId(id);
+        setExtraSearchTerm('');
+        setShowLinkModal(true);
+        setActiveActionMenu(null);
+    };
 
-  const handleBulkDelete = async () => {
-    if (selectedProducts.length === 0) {
-      alert(direction === 'rtl' ? 'يرجى اختيار أصناف أولاً' : 'Please select items first');
-      return;
-    }
+    const handleLinkSubProduct = async (directProduct: Product) => {
+        if (!selectedProductId) return;
+        const subProduct = products.find((p: Product) => p.id === selectedProductId);
+        if (!subProduct) return;
 
-    const confirmMsg = direction === 'rtl'
-      ? `هل أنت متأكد من حذف ${selectedProducts.length} صنف؟`
-      : `Are you sure you want to delete ${selectedProducts.length} items?`;
+        const updatedProduct = {
+            ...subProduct,
+            parentProductId: directProduct.id,
+            parentProductName: directProduct.name,
+            updatedAt: new Date().toISOString()
+        };
 
-    if (window.confirm(confirmMsg)) {
-      await deleteMultipleProducts(selectedProducts);
-      setSelectedProducts([]);
-      setShowBulkActions(false);
-    }
-  };
+        if (updateProduct) await updateProduct(updatedProduct);
+        setShowLinkModal(false);
+    };
 
-  const handleDeleteProduct = async (id: number) => {
-    const confirmMsg = direction === 'rtl'
-      ? 'هل أنت متأكد من حذف هذا الصنف؟'
-      : 'Are you sure you want to delete this product?';
+    const openAddCategoryModal = (id: string) => {
+        setSelectedProductId(id);
+        setExtraSearchTerm('');
+        setShowAddCategoryModal(true);
+        setActiveActionMenu(null);
+    };
 
-    if (window.confirm(confirmMsg)) {
-      await deleteProduct(id);
-      setOpenActionId(null);
-      setMenuPosition(null);
-    }
-  };
+    const handleAddCategory = async (subProduct: Product) => {
+        if (!selectedProductId) return;
+        const directProduct = products.find((p: Product) => p.id === selectedProductId);
+        if (!directProduct) return;
 
-  const handleDuplicateProduct = async (product: Product) => {
-    const { id, ...productData } = product;
-    try {
-      await addProduct({
-        ...productData,
-        name: `${product.name} ${t('copy_suffix')}`,
-        code: `${product.code}-copy`
-      });
-    } catch (err) {
-      console.error(err);
-      alert(direction === 'rtl' ? 'فشل نسخ الصنف' : 'Failed to duplicate product');
-    }
-    setOpenActionId(null);
-    setMenuPosition(null);
-  };
+        const currentCategories = directProduct.category ? directProduct.category.split(',').map((c: string) => c.trim()) : [];
+        if (!currentCategories.includes(subProduct.name)) {
+            const updatedCategories = [...currentCategories, subProduct.name].join(', ');
 
-  const toggleActionMenu = (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (openActionId === id) {
-      setOpenActionId(null);
-      setMenuPosition(null);
-    } else {
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      setOpenActionId(id);
+            const updatedProduct = {
+                ...directProduct,
+                category: updatedCategories,
+                updatedAt: new Date().toISOString()
+            };
 
-      // In RTL, we want the right edge of the menu to align with the right edge of the button
-      // Menu width is w-48 (192px)
-      const menuWidth = 192;
-      const left = direction === 'rtl'
-        ? rect.right - menuWidth
-        : rect.left;
+            if (updateProduct) await updateProduct(updatedProduct);
+        }
+        setShowAddCategoryModal(false);
+    };
 
-      setMenuPosition({
-        top: rect.bottom + 5,
-        left: Math.max(10, left) // Ensure it doesn't go off-screen
-      });
-    }
-  };
-
-  return (
-    <div className="space-y-4" onClick={() => { setOpenActionId(null); setMenuPosition(null); }}>
-      {/* Price Update Notification */}
-      <AnimatePresence>
-        {showPriceUpdate && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-blue-50 border border-blue-200 rounded-lg p-4 relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowPriceUpdate(false)}
-              className={`absolute top-2 text-blue-400 hover:text-blue-600 ${direction === 'rtl' ? 'left-2' : 'right-2'}`}
-            >
-              <X size={18} />
-            </button>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="bg-blue-100 p-2 rounded-full text-blue-600">
-                <Upload size={24} />
-              </div>
-              <div className={`flex-1 text-center ${direction === 'rtl' ? 'sm:text-right' : 'sm:text-left'}`}>
-                <h3 className="font-bold text-blue-800">{t('update_prices_title')}</h3>
-                <p className="text-sm text-blue-600">{t('update_prices_desc')}</p>
-              </div>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <label className="flex-1 sm:flex-none cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-2">
-                  <Upload size={16} />
-                  {t('choose_file')}
-                  <input type="file" className="hidden" accept=".xlsx,.xls,.csv" />
-                </label>
-              </div>
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50" dir={direction || 'rtl'}>
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-[var(--primary)] border-t-transparent"></div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        );
+    }
 
+    const getTabTitle = () => {
+        switch (activeTab) {
+            case 'basic': return 'الأصناف المباشرة';
+            case 'sub': return 'الأصناف المتفرعة';
+            case 'prepared': return 'الأصناف المجهزة';
+            case 'materials': return 'الخامات';
+            default: return '';
+        }
+    };
 
-      {/* Breadcrumb */}
-      <div className="text-sm text-gray-500 flex items-center gap-1">
-        <span>{t('home')}</span>
-        <span>/</span>
-        <span className="text-gray-800 dark:text-black font-medium">{t('products')}</span>
-      </div>
+    const getTabIcon = () => {
+        switch (activeTab) {
+            case 'basic': return <Box size={22} className="text-[var(--primary)]" />;
+            case 'sub': return <Layers size={22} className="text-[var(--primary)]" />;
+            case 'prepared': return <Package size={22} className="text-[var(--primary)]" />;
+            case 'materials': return <FolderPlus size={22} className="text-[var(--primary)]" />;
+            default: return <Box size={22} />;
+        }
+    };
 
-      {/* Page Header */}
-      <div className="bg-white p-4 rounded-t-xl border-b border-gray-200">
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-800 dark:text-black flex items-center gap-2">
-            {t('products_all_branches')}
-            <PlusCircle size={20} className="text-primary" />
-          </h1>
-          <div className="relative" ref={bulkActionsRef}>
-            <button
-              onClick={() => setShowBulkActions(!showBulkActions)}
-              className="p-2 bg-white border border-gray-300 rounded-lg text-gray-800 hover:bg-gray-50 transition-colors shadow-sm"
-            >
-              <Menu size={20} />
-            </button>
+    return (
+        <div className="space-y-6 pb-12" dir={direction || 'rtl'}>
+            {/* الهيدر */}
+            <div className="takamol-page-header">
+                <div className="flex items-center gap-3">
+                    <div className="bg-[#e6f4ea] border border-[#00a651]/20 p-2.5 rounded-xl text-[var(--primary)]">
+                        <Box size={24} />
+                    </div>
+                    <div>
+                        <h1 className="takamol-page-title">إدارة الأصناف</h1>
+                        <p className="takamol-page-subtitle">إدارة الأصناف المباشرة والمتفرعة والمجهزة والخامات</p>
+                    </div>
+                </div>
+                <button
+                    onClick={() => navigate('/products/create', { state: { productNature: activeTab } })}
+                    className="btn-primary"
+                >
+                    <Plus size={18} /> إضافة صنف
+                </button>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-6">
+                {/* السايدبار - 4 أزرار */}
+                <div className="w-full md:w-1/4 space-y-3">
+                    <button
+                        onClick={() => { setActiveTab('basic'); setSearchTerm(''); }}
+                        className={cn("w-full flex items-center gap-3 p-4 rounded-xl font-bold transition-all border",
+                            activeTab === 'basic' ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-md" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50")}
+                    >
+                        <Box size={20} /> الأصناف المباشرة
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('sub'); setSearchTerm(''); }}
+                        className={cn("w-full flex items-center gap-3 p-4 rounded-xl font-bold transition-all border",
+                            activeTab === 'sub' ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-md" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50")}
+                    >
+                        <Layers size={20} /> الأصناف المتفرعة
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('prepared'); setSearchTerm(''); }}
+                        className={cn("w-full flex items-center gap-3 p-4 rounded-xl font-bold transition-all border",
+                            activeTab === 'prepared' ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-md" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50")}
+                    >
+                        <Package size={20} /> الأصناف المجهزة
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('materials'); setSearchTerm(''); }}
+                        className={cn("w-full flex items-center gap-3 p-4 rounded-xl font-bold transition-all border",
+                            activeTab === 'materials' ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-md" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50")}
+                    >
+                        <FolderPlus size={20} /> الخامات
+                    </button>
+                </div>
+
+                {/* المحتوى الرئيسي */}
+                <div className="w-full md:w-3/4 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                            {getTabIcon()}
+                            {getTabTitle()}
+                            <span className="mr-2 text-sm text-gray-500">({currentTableData.length})</span>
+                        </h2>
+                        <div className="relative w-72">
+                            <input
+                                type="text"
+                                placeholder="ابحث بالاسم أو الكود..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="takamol-input pr-10"
+                            />
+                            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        </div>
+                    </div>
+
+                    {/* ✅ الجدول */}
+                    <div className="overflow-x-auto">
+                        <table className="takamol-table min-w-[900px]">
+                            <thead>
+                                <tr>
+                                    {activeTab === 'basic' && (
+                                        <>
+                                            <th>الكود</th>
+                                            <th>الاسم</th>
+                                            <th>القسم</th>
+                                            <th>السعر</th>
+                                            <th>الكمية</th>
+                                            <th className="w-40">إجراءات</th>
+                                        </>
+                                    )}
+                                    {activeTab === 'sub' && (
+                                        <>
+                                            <th className="w-1/4">الاسم</th>
+                                            {/* ✅ الخانة الجديدة للأصناف التابعة */}
+                                            <th className="w-2/4">الأصناف التابعة</th>
+                                            <th className="w-32">إجراءات</th>
+                                        </>
+                                    )}
+                                    {activeTab === 'prepared' && (
+                                        <>
+                                            <th>الكود</th>
+                                            <th>الاسم</th>
+                                            <th>السعر</th>
+                                            <th className="w-32">إجراءات</th>
+                                        </>
+                                    )}
+                                    {activeTab === 'materials' && (
+                                        <>
+                                            <th>الكود</th>
+                                            <th>الاسم</th>
+                                        </>
+                                    )}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {currentTableData.map((item: Product) => (
+                                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                                        {activeTab === 'basic' && (
+                                            <>
+                                                <td className="font-bold">{item.code || '-'}</td>
+                                                <td className="font-bold">{item.name || '-'}</td>
+                                                <td>
+                                                    {item.category ? (
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {item.category.split(',').map((cat: string, i: number) => (
+                                                                <span key={i} className="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded">{cat.trim()}</span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400">-</span>
+                                                    )}
+                                                </td>
+                                                <td className="font-bold text-[var(--primary)]">{Number(item.price || 0).toFixed(2)}</td>
+                                                <td dir="ltr">{item.quantity || '0'}</td>
+                                                <td className="relative action-menu-container">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                            setMenuPosition({ top: rect.bottom + 5, left: rect.left + rect.width / 2 });
+                                                            setActiveActionMenu(activeActionMenu === item.id ? null : item.id);
+                                                            setSelectedProductId(item.id);
+                                                        }}
+                                                        className="bg-[var(--primary)] text-white px-3 py-1.5 rounded text-sm font-bold"
+                                                    >
+                                                        خيارات
+                                                    </button>
+                                                </td>
+                                            </>
+                                        )}
+
+                                        {activeTab === 'sub' && (
+                                            <>
+                                                <td className="font-bold text-gray-800">{item.name || '-'}</td>
+                                                {/* ✅ استدعاء الدالة السحرية لعرض الباجات */}
+                                                <td>
+                                                    {getChildrenNames(item)}
+                                                </td>
+                                                <td className="relative action-menu-container">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                            setMenuPosition({ top: rect.bottom + 5, left: rect.left + rect.width / 2 });
+                                                            setActiveActionMenu(activeActionMenu === item.id ? null : item.id);
+                                                            setSelectedProductId(item.id);
+                                                        }}
+                                                        className="bg-[var(--primary)] text-white px-3 py-1.5 rounded text-sm font-bold"
+                                                    >
+                                                        خيارات
+                                                    </button>
+                                                </td>
+                                            </>
+                                        )}
+
+                                        {activeTab === 'prepared' && (
+                                            <>
+                                                <td className="font-bold">{item.code || '-'}</td>
+                                                <td className="font-bold">{item.name || '-'}</td>
+                                                <td className="font-bold text-[var(--primary)]">{Number(item.price || 0).toFixed(2)}</td>
+                                                <td className="relative action-menu-container">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                            setMenuPosition({ top: rect.bottom + 5, left: rect.left + rect.width / 2 });
+                                                            setActiveActionMenu(activeActionMenu === item.id ? null : item.id);
+                                                            setSelectedProductId(item.id);
+                                                        }}
+                                                        className="bg-[var(--primary)] text-white px-3 py-1.5 rounded text-sm font-bold"
+                                                    >
+                                                        خيارات
+                                                    </button>
+                                                </td>
+                                            </>
+                                        )}
+
+                                        {activeTab === 'materials' && (
+                                            <>
+                                                <td className="font-bold">{item.code || '-'}</td>
+                                                <td className="font-bold">{item.name || '-'}</td>
+                                            </>
+                                        )}
+                                    </tr>
+                                ))}
+                                {currentTableData.length === 0 && (
+                                    <tr><td colSpan={activeTab === 'basic' ? 6 : activeTab === 'sub' ? 3 : activeTab === 'prepared' ? 4 : 2} className="p-8 text-center text-gray-500">لا توجد بيانات</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {/* ✅ القائمة المنسدلة */}
+            {activeActionMenu && menuPosition && createPortal(
+                <div
+                    style={{ position: 'absolute', top: menuPosition.top, left: menuPosition.left, transform: 'translateX(-50%)', zIndex: 99999 }}
+                    className="w-44 bg-white border border-gray-200 rounded-xl shadow-xl py-1 action-menu-dropdown"
+                    dir="rtl"
+                >
+                    <button
+                        onClick={() => {
+                            const product = products.find((p: Product) => p.id === selectedProductId);
+                            if (product) handleEditProduct(product);
+                            setActiveActionMenu(null);
+                        }}
+                        className="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                        <Edit2 size={16} className="text-green-600" /> تعديل
+                    </button>
+
+                    <div className="h-px bg-gray-100 my-1" />
+
+                    <button
+                        onClick={() => { openDeleteModal(selectedProductId!); setActiveActionMenu(null); }}
+                        className="w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    >
+                        <Trash2 size={16} /> حذف
+                    </button>
+                </div>,
+                document.body
+            )}
+
+            {/* النوافذ المنبثقة للربط والإضافة */}
+            <AnimatePresence>
+                {showLinkModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4"
+                        onClick={() => setShowLinkModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.95 }}
+                            className="bg-white rounded-xl w-full max-w-md overflow-hidden shadow-2xl"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-orange-50">
+                                <h2 className="text-lg font-bold text-orange-800 flex items-center gap-2">
+                                    <Layers size={20} /> اختر الصنف المباشر للربط
+                                </h2>
+                                <button onClick={() => setShowLinkModal(false)} className="text-gray-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-100"><X size={20} /></button>
+                            </div>
+                            <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+                                <div className="relative flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2.5 focus-within:border-orange-400 transition-colors shadow-sm">
+                                    <Search className="text-gray-400 shrink-0 ml-2" size={16} />
+                                    <input type="text" placeholder="ابحث عن صنف مباشر..." value={extraSearchTerm} onChange={(e) => setExtraSearchTerm(e.target.value)} autoFocus className="flex-1 bg-transparent border-none outline-none text-sm text-gray-700" />
+                                </div>
+                            </div>
+                            <div className="p-4 overflow-y-auto max-h-80 space-y-2">
+                                {availableDirectProducts.map((directProduct: Product) => (
+                                    <div key={directProduct.id} className="flex items-center justify-between p-3 border rounded-xl bg-white hover:border-orange-300 hover:shadow-sm transition-all cursor-pointer" onClick={() => handleLinkSubProduct(directProduct)}>
+                                        <div className="text-right">
+                                            <p className="font-bold text-gray-800">{directProduct.name}</p>
+                                            <p className="text-xs text-gray-500 mt-1">كود: {directProduct.code} | قسم: {directProduct.category || 'عام'}</p>
+                                        </div>
+                                        <button className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg text-sm font-bold hover:bg-orange-200 transition-colors flex items-center gap-1"><Link2 size={14} /> ربط</button>
+                                    </div>
+                                ))}
+                                {availableDirectProducts.length === 0 && <p className="text-center text-sm text-gray-500 py-6">لا توجد أصناف مباشرة مطابقة</p>}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <AnimatePresence>
-              {showBulkActions && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className={`absolute top-full mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-[60] overflow-hidden ${direction === 'rtl' ? 'left-0' : 'right-0'}`}
-                >
-                  <div className="py-1">
-                    <button
-                      onClick={() => { navigate('/products/create'); setShowBulkActions(false); }}
-                      className={`w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 ${direction === 'rtl' ? 'flex-row-reverse text-right' : 'text-left'}`}
+                {showAddCategoryModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4"
+                        onClick={() => setShowAddCategoryModal(false)}
                     >
-                      <PlusCircle size={18} className="text-gray-500" />
-                      <span className="flex-1">إضافة الصنف</span>
-                    </button>
+                        <motion.div
+                            initial={{ scale: 0.95 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.95 }}
+                            className="bg-white rounded-xl w-full max-w-md overflow-hidden shadow-2xl"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-purple-50">
+                                <h2 className="text-lg font-bold text-purple-800 flex items-center gap-2">
+                                    <FolderPlus size={20} /> اختر قسماً لإضافته
+                                </h2>
+                                <button onClick={() => setShowAddCategoryModal(false)} className="text-gray-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-100"><X size={20} /></button>
+                            </div>
+                            <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+                                <div className="relative flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2.5 focus-within:border-purple-400 transition-colors shadow-sm">
+                                    <Search className="text-gray-400 shrink-0 ml-2" size={16} />
+                                    <input type="text" placeholder="ابحث عن قسم..." value={extraSearchTerm} onChange={(e) => setExtraSearchTerm(e.target.value)} autoFocus className="flex-1 bg-transparent border-none outline-none text-sm text-gray-700" />
+                                </div>
+                            </div>
+                            <div className="p-4 overflow-y-auto max-h-80 space-y-2">
+                                {availableSubAsCategories.map((subProduct: Product) => {
+                                    const directProduct = products.find((p: Product) => p.id === selectedProductId);
+                                    const isAlreadyAdded = directProduct?.category?.split(',').map((c: string) => c.trim()).includes(subProduct.name);
 
-                    <button
-                      onClick={() => { setShowPriceUpdate(true); setShowBulkActions(false); }}
-                      className={`w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 ${direction === 'rtl' ? 'flex-row-reverse text-right' : 'text-left'}`}
-                    >
-                      <FileSpreadsheet size={18} className="text-gray-500" />
-                      <span className="flex-1">تحديث الأسعار</span>
-                    </button>
-
-                    <button
-                      onClick={() => { navigate('/products/barcode'); setShowBulkActions(false); }}
-                      className={`w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 ${direction === 'rtl' ? 'flex-row-reverse text-right' : 'text-left'}`}
-                    >
-                      <Printer size={18} className="text-gray-500" />
-                      <span className="flex-1">طباعة باركود - الملصقات</span>
-                    </button>
-
-                    <button
-                      onClick={() => { alert('Exporting to Excel...'); setShowBulkActions(false); }}
-                      className={`w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 ${direction === 'rtl' ? 'flex-row-reverse text-right' : 'text-left'}`}
-                    >
-                      <Download size={18} className="text-gray-500" />
-                      <span className="flex-1">تصدير إلى ملف Excel</span>
-                    </button>
-
-                    <button
-                      onClick={() => { handleBulkDelete(); setShowBulkActions(false); }}
-                      disabled={selectedProducts.length === 0}
-                      className={`w-full px-4 py-2.5 text-sm flex items-center gap-3 transition-colors ${selectedProducts.length === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-red-600 hover:bg-red-50'} ${direction === 'rtl' ? 'flex-row-reverse text-right' : 'text-left'}`}
-                    >
-                      <Trash2 size={18} className={selectedProducts.length === 0 ? 'text-gray-300' : 'text-red-500'} />
-                      <span className="flex-1">حذف الأصناف {selectedProducts.length > 0 && `(${selectedProducts.length})`}</span>
-                    </button>
-                  </div>
-                </motion.div>
-              )}
+                                    return (
+                                        <div key={subProduct.id} className={cn("flex items-center justify-between p-3 border rounded-xl bg-white transition-all cursor-pointer", isAlreadyAdded ? "border-gray-200 bg-gray-50 opacity-60" : "hover:border-purple-300 hover:shadow-sm")}>
+                                            <div className="text-right">
+                                                <p className="font-bold text-gray-800">{subProduct.name}</p>
+                                                <p className="text-xs text-gray-500 mt-1">الصنف المتفرع</p>
+                                            </div>
+                                            <button
+                                                onClick={() => !isAlreadyAdded && handleAddCategory(subProduct)}
+                                                disabled={isAlreadyAdded}
+                                                className={cn("px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1 transition-colors", isAlreadyAdded ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-purple-100 text-purple-700 hover:bg-purple-200")}
+                                            >
+                                                <FolderPlus size={14} /> {isAlreadyAdded ? 'مضاف' : 'إضافة'}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                                {availableSubAsCategories.length === 0 && <p className="text-center text-sm text-gray-500 py-6">لا توجد أقسام متاحة</p>}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
             </AnimatePresence>
-          </div>
-        </div>
-        <p className="text-sm text-gray-500 dark:text-black mt-1">{t('products_table_desc')}</p>
-      </div>
 
-      {/* Table Container */}
-      <div className="bg-white rounded-b-xl shadow-sm border border-gray-200 p-4 min-h-[400px]">
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-black">
-            <span>{t('show')}</span>
-            <select className="border border-gray-300 rounded px-2 py-1 outline-none focus:border-primary text-black">
-              <option>10</option>
-              <option>25</option>
-              <option>50</option>
-            </select>
-          </div>
-
-          <div className="relative w-full sm:w-64">
-            <input
-              type="text"
-              placeholder={t('search_placeholder')}
-              className={`w-full border border-gray-300 rounded px-3 py-1.5 text-sm outline-none focus:border-primary text-black ${direction === 'rtl' ? 'pr-8' : 'pl-8'}`}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <Search className={`absolute top-1/2 -translate-y-1/2 text-gray-400 ${direction === 'rtl' ? 'right-2' : 'left-2'}`} size={16} />
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className={`w-full min-w-[1200px] text-sm ${direction === 'rtl' ? 'text-right' : 'text-left'} border-collapse`}>
-            <thead>
-              <tr className="bg-primary text-white">
-                <th className="p-3 border border-primary-hover w-10 text-center whitespace-nowrap">
-                  <input
-                    type="checkbox"
-                    className="rounded w-4 h-4 accent-white"
-                    checked={selectedProducts.length === productsList.length && productsList.length > 0}
-                    onChange={handleSelectAll}
-                  />
-                </th>
-                <th className="p-3 border border-primary-hover whitespace-nowrap">{t('image')}</th>
-                <th className="p-3 border border-primary-hover whitespace-nowrap">{t('product_code')}</th>
-                <th className="p-3 border border-primary-hover whitespace-nowrap">{t('name')}</th>
-
-                <th className="p-3 border border-primary-hover whitespace-nowrap">{t('main_categories')}</th>
-                <th className="p-3 border border-primary-hover whitespace-nowrap">{t('cost')}</th>
-                <th className="p-3 border border-primary-hover whitespace-nowrap">{t('selling_price')}</th>
-                <th className="p-3 border border-primary-hover whitespace-nowrap">{t('quantity')}</th>
-                <th className="p-3 border border-primary-hover whitespace-nowrap">{t('unit')}</th>
-                <th className="p-3 border border-primary-hover whitespace-nowrap">{t('stock_alerts')}</th>
-                <th className="p-3 border border-primary-hover w-24 whitespace-nowrap">{t('actions')}</th>
-              </tr>
-            </thead>
-            <tbody className="dark:text-black">
-              {productsList.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50 text-gray-700 dark:text-black cursor-pointer" onClick={() => setSelectedProductDetails(product)}>
-                  <td className="p-2 border border-gray-200 text-center whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      className="rounded w-4 h-4 accent-primary"
-                      checked={selectedProducts.includes(product.id)}
-                      onChange={() => handleSelectProduct(product.id)}
-                    />
-                  </td>
-                  <td className="p-2 border border-gray-200 text-center whitespace-nowrap">
-                    {product.image ? (
-                      <img src={product.image} alt={product.name} className="w-8 h-8 object-cover mx-auto rounded" />
-                    ) : (
-                      <div className="w-8 h-8 bg-gray-100 mx-auto rounded flex items-center justify-center text-gray-400">
-                        <FileText size={16} />
-                      </div>
-                    )}
-                  </td>
-                  <td className="p-2 border border-gray-200 whitespace-nowrap">{product.code}</td>
-                  <td className="p-2 border border-gray-200 font-medium whitespace-nowrap">{product.name}</td>
-
-                  <td className="p-2 border border-gray-200 whitespace-nowrap">{product.category}</td>
-                  <td className="p-2 border border-gray-200 font-bold whitespace-nowrap">{product.cost}</td>
-                  <td className="p-2 border border-gray-200 font-bold whitespace-nowrap">{product.price}</td>
-                  <td className="p-2 border border-gray-200 whitespace-nowrap" dir="ltr">{product.quantity}</td>
-                  <td className="p-2 border border-gray-200 whitespace-nowrap">{product.unit}</td>
-                  <td className="p-2 border border-gray-200 whitespace-nowrap">{product.alertQuantity}</td>
-                  <td className="p-2 border border-gray-200 text-center whitespace-nowrap">
-                    <button
-                      onClick={(e) => toggleActionMenu(product.id, e)}
-                      className="bg-primary text-white px-2 py-1 rounded text-xs flex items-center gap-1 mx-auto hover:bg-primary-hover transition-colors"
+            <AnimatePresence>
+                {showDeleteModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
+                        onClick={() => setShowDeleteModal(false)}
                     >
-                      {t('actions')}
-                      <ChevronDown size={12} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        <motion.div
+                            initial={{ scale: 0.95 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.95 }}
+                            className="bg-white rounded-2xl w-full max-w-sm p-6 text-center"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><Trash2 size={30} /></div>
+                            <h2 className="text-xl font-bold mb-2">هل أنت متأكد من الحذف؟</h2>
+                            <p className="text-gray-500 mb-6 text-sm">هذا الإجراء لا يمكن التراجع عنه</p>
+                            <div className="flex gap-3">
+                                <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-2.5 bg-gray-100 rounded-xl font-bold hover:bg-gray-200">إلغاء</button>
+                                <button onClick={confirmDelete} className="flex-1 py-2.5 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600">حذف</button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4 text-sm text-gray-600">
-          <div>
-            {t('showing_records')} 1 {t('to')} {productsList.length} {t('of')} {productsList.length} {t('records')}
-          </div>
-          <div className="flex items-center gap-1">
-            <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50" disabled>{t('previous')}</button>
-            <button className="px-3 py-1 bg-primary text-white rounded border border-primary">1</button>
-            <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50" disabled>{t('next')}</button>
-          </div>
-        </div>
-      </div>
-
-      {/* Floating Action Menu */}
-      <AnimatePresence>
-        {openActionId !== null && menuPosition && (
-          <motion.div
-            ref={actionMenuRef}
-            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -10 }}
-            className={`fixed bg-white rounded-md shadow-lg border border-gray-200 z-50 overflow-hidden w-48 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}
-            style={{ top: menuPosition.top, left: menuPosition.left }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {(() => {
-              const product = productsList.find(p => p.id === openActionId);
-              if (!product) return null;
-              return (
-                <>
-                  <button
-                    onClick={() => handleDuplicateProduct(product)}
-                    className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    {direction === 'rtl' ? (
-                      <>
-                        <span>{t('duplicate_product')}</span>
-                        <Copy size={14} className="text-gray-500" />
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={14} className="text-gray-500" />
-                        <span>{t('duplicate_product')}</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => navigate('/products/create')}
-                    className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    {direction === 'rtl' ? (
-                      <>
-                        <span>{t('edit_product')}</span>
-                        <Edit size={14} className="text-gray-500" />
-                      </>
-                    ) : (
-                      <>
-                        <Edit size={14} className="text-gray-500" />
-                        <span>{t('edit_product')}</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => navigate('/products/barcode')}
-                    className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    {direction === 'rtl' ? (
-                      <>
-                        <span>{t('print_barcode_labels')}</span>
-                        <Printer size={14} className="text-gray-500" />
-                      </>
-                    ) : (
-                      <>
-                        <Printer size={14} className="text-gray-500" />
-                        <span>{t('print_barcode_labels')}</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => { setShowBranchPrices(product); setOpenActionId(null); }}
-                    className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    {direction === 'rtl' ? (
-                      <>
-                        <span>{t('branch_prices')}</span>
-                        <DollarSign size={14} className="text-gray-500" />
-                      </>
-                    ) : (
-                      <>
-                        <DollarSign size={14} className="text-gray-500" />
-                        <span>{t('branch_prices')}</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteProduct(product.id)}
-                    className={`w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    {direction === 'rtl' ? (
-                      <>
-                        <span>{t('delete_product')}</span>
-                        <Trash2 size={14} className="text-red-500" />
-                      </>
-                    ) : (
-                      <>
-                        <Trash2 size={14} className="text-red-500" />
-                        <span>{t('delete_product')}</span>
-                      </>
-                    )}
-                  </button>
-                </>
-              );
-            })()}
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {/* Branch Prices Modal */}
-      <AnimatePresence>
-        {showBranchPrices && (
-          <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden"
-              dir={direction}
-            >
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white">
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setShowBranchPrices(null)} className="text-gray-400 hover:text-gray-600">
-                    <X size={24} />
-                  </button>
-                  <h2 className="text-lg font-bold text-red-700">
-                    {showBranchPrices.name} - {t('branch_prices')}
-                  </h2>
-                </div>
-                <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
-                  <Printer size={16} />
-                  {t('print')}
-                </button>
-              </div>
-
-              <div className="p-6 space-y-6">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  <div className="w-full md:w-64">
-                    <select className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-primary text-sm">
-                      <option>شركة دقة الحلول</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" id="available" className="w-4 h-4 accent-blue-600" defaultChecked />
-                    <label htmlFor="available" className="text-sm font-bold text-red-700 cursor-pointer">
-                      {t('product_available_in_branch')}
-                    </label>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm border-collapse">
-                    <thead>
-                      <tr className="bg-red-800 text-white">
-                        <th className="p-3 border border-red-900">{t('branch')}</th>
-                        <th className="p-3 border border-red-900">{t('unit')}</th>
-                        <th className="p-3 border border-red-900">{t('internal_units_count')}</th>
-                        <th className="p-3 border border-red-900">{t('barcode')}</th>
-                        <th className="p-3 border border-red-900">{t('selling_price')}</th>
-                        <th className="p-3 border border-red-900">{t('wholesale_price')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="text-center">
-                        <td className="p-3 border border-gray-200 text-red-700 font-medium">شركة دقة الحلول</td>
-                        <td className="p-3 border border-gray-200 text-red-700 font-medium">{showBranchPrices.unit}</td>
-                        <td className="p-3 border border-gray-200 text-red-700 font-medium">1</td>
-                        <td className="p-3 border border-gray-200 text-red-700 font-medium">{showBranchPrices.code}</td>
-                        <td className="p-3 border border-gray-200">
-                          <input
-                            type="text"
-                            defaultValue={showBranchPrices.price}
-                            className="w-24 border border-gray-300 rounded px-2 py-1 text-center outline-none focus:border-primary"
-                          />
-                        </td>
-                        <td className="p-3 border border-gray-200">
-                          <input
-                            type="text"
-                            defaultValue="0.00"
-                            className="w-24 border border-gray-300 rounded px-2 py-1 text-center outline-none focus:border-primary"
-                          />
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className={`flex ${direction === 'rtl' ? 'justify-start' : 'justify-end'}`}>
-                  <button
-                    onClick={() => {
-                      navigate('/products/create');
-                      setShowBranchPrices(null);
-                    }}
-                    className="bg-red-800 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-900 transition-colors"
-                  >
-                    {t('edit_product_btn')}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-      <ProductDetailsModal
-        isOpen={!!selectedProductDetails}
-        onClose={() => setSelectedProductDetails(null)}
-        product={selectedProductDetails}
-        onDelete={(id) => {
-          handleDeleteProduct(id);
-          setSelectedProductDetails(null);
-        }}
-        onEdit={(id) => {
-          navigate(`/products/create`);
-          setSelectedProductDetails(null);
-        }}
-        onPrintPDF={() => alert('Printing PDF...')}
-        onPrintBarcode={() => {
-          navigate('/products/barcode');
-          setSelectedProductDetails(null);
-        }}
-      />
-    </div>
-  );
+    );
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Toast from './Toast';
@@ -8,6 +8,26 @@ import { useLanguage } from '@/context/LanguageContext';
 interface AddCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+type Country = { id: number; countryName: string };
+type City = { id: number; cityName?: string; name?: string };   // حسب الـ API عندك
+type StateItem = { id: number; stateName?: string; name?: string };
+
+const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL ?? ''; // عدّلها حسب مشروعك
+
+async function apiGet<T>(url: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${url}`, {
+    headers: { 'Content-Type': 'application/json' },
+    // لو عندك توكن/كوكيز:
+    // credentials: 'include',
+  });
+  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+  return res.json();
+}
+
+function getName(o: any) {
+  return o?.countryName ?? o?.cityName ?? o?.stateName ?? o?.name ?? '';
 }
 
 export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalProps) {
@@ -21,10 +41,17 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
     mobile: '',
     taxNumber: '',
     address: '',
-    city: '',
-    state: '',
     postalCode: '',
     isActive: true,
+
+    // نخليها IDs + names
+    countryId: 0,
+    cityId: 0,
+    stateId: 0,
+
+    // لو الباك اند لسه مستني string
+    city: '',
+    state: '',
   });
 
   const [toastOpen, setToastOpen] = useState(false);
@@ -32,15 +59,107 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [submitting, setSubmitting] = useState(false);
 
+  // Location data
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [states, setStates] = useState<StateItem[]>([]);
+
+  const [loadingCountries, setLoadingCountries] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [loadingStates, setLoadingStates] = useState(false);
+
   const showToast = (type: 'success' | 'error', msg: string) => {
     setToastType(type);
     setToastMsg(msg);
     setToastOpen(true);
   };
 
+  // 1) Load countries when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setLoadingCountries(true);
+    apiGet<Country[]>('/api/Location/countries')
+      .then((data) => setCountries(Array.isArray(data) ? data : []))
+      .catch(() => showToast('error', t('login_network_error') || 'فشل تحميل الدول'))
+      .finally(() => setLoadingCountries(false));
+  }, [isOpen]);
+
+  // 2) Load cities when country changes
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!formData.countryId) {
+      setCities([]);
+      setStates([]);
+      return;
+    }
+
+    setLoadingCities(true);
+    setCities([]);
+    setStates([]);
+
+    // reset city/state selections
+    setFormData((p) => ({
+      ...p,
+      cityId: 0,
+      stateId: 0,
+      city: '',
+      state: '',
+    }));
+
+    apiGet<City[]>(`/api/Location/countries/${formData.countryId}/cities`)
+      .then((data) => setCities(Array.isArray(data) ? data : []))
+      .catch(() => showToast('error', t('login_network_error') || 'فشل تحميل المدن'))
+      .finally(() => setLoadingCities(false));
+  }, [formData.countryId, isOpen]);
+
+  // 3) Load states when city changes
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!formData.cityId) {
+      setStates([]);
+      return;
+    }
+
+    setLoadingStates(true);
+    setStates([]);
+
+    // reset state selection
+    setFormData((p) => ({
+      ...p,
+      stateId: 0,
+      state: '',
+    }));
+
+    apiGet<StateItem[]>(`/api/Location/cities/${formData.cityId}/states`)
+      .then((data) => setStates(Array.isArray(data) ? data : []))
+      .catch(() => showToast('error', t('login_network_error') || 'فشل تحميل المحافظات/الولايات'))
+      .finally(() => setLoadingStates(false));
+  }, [formData.cityId, isOpen]);
+
+  const selectedCountry = useMemo(
+    () => countries.find((c) => c.id === formData.countryId),
+    [countries, formData.countryId]
+  );
+  const selectedCity = useMemo(
+    () => cities.find((c: any) => c.id === formData.cityId),
+    [cities, formData.cityId]
+  );
+  const selectedState = useMemo(
+    () => states.find((s: any) => s.id === formData.stateId),
+    [states, formData.stateId]
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+
+    // required validation (غير required inputs العادية)
+    if (!formData.countryId || !formData.cityId || !formData.stateId) {
+      showToast('error', 'من فضلك اختر الدولة والمدينة والمحافظة/الولاية');
+      return;
+    }
+
     setSubmitting(true);
 
     const payload = {
@@ -51,16 +170,20 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
       mobile: (formData.mobile.trim() || formData.phone.trim()),
       taxNumber: formData.taxNumber.trim(),
       address: formData.address.trim(),
-      city: formData.city.trim(),
-      state: formData.state.trim(),
       postalCode: formData.postalCode.trim(),
       isActive: true,
+
+      // نخلي الـ strings متزامنة مع الاختيارات
+      city: getName(selectedCity),
+      state: getName(selectedState),
+      countryName: getName(selectedCountry), // لو تحب تبعته للباك
     };
 
     try {
       const res = await addCustomer(payload as any);
       if (res.ok) {
         showToast('success', t('operation_completed_successfully') || 'تم الإضافة بنجاح');
+
         setFormData({
           customerName: '',
           email: '',
@@ -68,16 +191,23 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
           mobile: '',
           taxNumber: '',
           address: '',
-          city: '',
-          state: '',
           postalCode: '',
           isActive: true,
+          countryId: 0,
+          cityId: 0,
+          stateId: 0,
+          city: '',
+          state: '',
         });
+
+        setCities([]);
+        setStates([]);
+
         setTimeout(() => onClose(), 500);
       } else {
         showToast('error', res.message || (t('login_network_error') || 'فشل الإضافة'));
       }
-    } catch (err) {
+    } catch {
       showToast('error', t('login_network_error') || 'فشل الإضافة');
     } finally {
       setSubmitting(false);
@@ -154,8 +284,63 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
               </Field>
 
               <div />
+       <Field label="الدولة *">
+                <select
+                  required
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71] bg-white"
+                  value={formData.countryId || ''}
+                  onChange={(e) => setFormData({ ...formData, countryId: Number(e.target.value) || 0 })}
+                  disabled={loadingCountries}
+                >
+                  <option value="">{loadingCountries ? 'جاري التحميل...' : 'اختر الدولة'}</option>
+                  {countries.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.countryName}
+                    </option>
+                  ))}
+                </select>
+              </Field>
 
-              {/* ✅ required fields */}
+              
+              <Field label="المحافظة/الولاية  *">
+                <select
+                  required
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71] bg-white"
+                  value={formData.cityId || ''}
+                  onChange={(e) => setFormData({ ...formData, cityId: Number(e.target.value) || 0 })}
+                  disabled={!formData.countryId || loadingCities}
+                >
+                  <option value="">
+                    {!formData.countryId ? 'اختر الدولة أولاً' : (loadingCities ? 'جاري التحميل...' : 'اختر المدينة')}
+                  </option>
+                  {cities.map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {getName(c)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+             
+              <Field label="المدينة*">
+                <select
+                  required
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71] bg-white"
+                  value={formData.stateId || ''}
+                  onChange={(e) => setFormData({ ...formData, stateId: Number(e.target.value) || 0 })}
+                  disabled={!formData.cityId || loadingStates}
+                >
+                  <option value="">
+                    {!formData.cityId ? 'اختر المحافظه/ الولاية أولاً' : (loadingStates ? 'جاري التحميل...' : 'اختر المحافظة/الولاية')}
+                  </option>
+                  {states.map((s: any) => (
+                    <option key={s.id} value={s.id}>
+                      {getName(s)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              
               <Field label="العنوان *">
                 <input
                   required
@@ -165,23 +350,8 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
                 />
               </Field>
 
-              <Field label="المدينة *">
-                <input
-                  required
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71]"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                />
-              </Field>
-
-              <Field label="المحافظة/الولاية *">
-                <input
-                  required
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71]"
-                  value={formData.state}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                />
-              </Field>
+              
+             
 
               <Field label="الرمز البريدي">
                 <input

@@ -6,7 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import Logo from '@/components/Logo';
 import { localizeAuthError, AUTH_API_BASE } from '@/lib/utils';
 
-const AUTH_API = `${AUTH_API_BASE}/Auth`;
+const AUTH_API = `${AUTH_API_BASE}/api/Auth`;
 
 export default function VerifyOTP() {
   const navigate = useNavigate();

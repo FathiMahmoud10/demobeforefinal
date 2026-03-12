@@ -1,56 +1,82 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Edit, Trash2, PlusCircle, Save, X, Loader2 } from 'lucide-react';
-import AddUnitModal from '@/components/AddUnitModal';
-import { useLanguage } from '../context/LanguageContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useEffect } from "react";
+import { ChevronDown, Edit, Trash2, PlusCircle } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
+import { motion, AnimatePresence } from "framer-motion";
+import AddUnitModal from "@/components/AddUnitModal";
 
-// تعريف نوع البيانات للوحدة
-interface Unit {
+type UnitOfMeasure = {
   id: number;
-  code: string;
   name: string;
   description?: string;
-}
+};
+
+type UnitListResponse = {
+  items: UnitOfMeasure[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+};
 
 const Units = () => {
   const { t, direction } = useLanguage();
 
   const [openActionId, setOpenActionId] = useState<number | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number, left: number } | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
 
-  const [units, setUnits] = useState<Unit[]>([]);
+  const [units, setUnits] = useState<UnitOfMeasure[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  
-  // حالات التعديل
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [editError, setEditError] = useState<string | null>(null);
+  const [editingUnit, setEditingUnit] = useState<UnitOfMeasure | null>(null);
 
-  // تحميل الوحدات من API
-  const loadUnits = async () => {
+  // ✅ لو عندك proxy خليها فاضية ""
+  // ✅ لو هتستدعي مباشر: "https://takamulerp.runasp.net"
+  const BASE_URL = "";
+
+  const fetchUnits = async () => {
     try {
-      const res = await fetch("http://takamulerp.runasp.net/UnitOfMeasure");
-      const data = await res.json();
+      setLoading(true);
+      setError(null);
 
-      const formattedUnits = data.items.map((item: any, index: number) => ({
-        id: item.id,
-        code: `${index + 1}`,
-        name: item.name,
-        description: item.description || ''
-      }));
+      const res = await fetch(
+        `${BASE_URL}/api/UnitOfMeasure?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            // لو عندك توكن:
+            // "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
-      setUnits(formattedUnits);
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Request failed: ${res.status}`);
+      }
 
-    } catch (error) {
-      console.error(error);
+      const data: UnitListResponse = await res.json();
+      setUnits(data.items || []);
+      setTotalCount(data.totalCount || 0);
+    } catch (e: any) {
+      setError(e?.message || "Failed to load units");
+      setUnits([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadUnits();
-  }, []);
+    fetchUnits();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageNumber, pageSize]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -59,9 +85,8 @@ const Units = () => {
         setMenuPosition(null);
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const toggleActionMenu = (id: number, e: React.MouseEvent) => {
@@ -70,275 +95,325 @@ const Units = () => {
     if (openActionId === id) {
       setOpenActionId(null);
       setMenuPosition(null);
-    } else {
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      setOpenActionId(id);
-
-      const menuWidth = 160;
-      const left = direction === 'rtl'
-        ? rect.right - menuWidth
-        : rect.left;
-
-      setMenuPosition({
-        top: rect.bottom + 5,
-        left: Math.max(10, left)
-      });
-    }
-  };
-
-  const handleDelete = (id: number) => {
-    if (window.confirm(t('confirm_delete_unit') || 'Are you sure you want to delete this unit?')) {
-      setUnits(units.filter(u => u.id !== id));
-      setOpenActionId(null);
-      // ملاحظة: يفضل هنا استدعاء API الحذف الفعلي
-    }
-  };
-
-  // فتح نافذة التعديل
-  const handleEditClick = (unit: Unit) => {
-    setEditingUnit(unit);
-    setIsEditModalOpen(true);
-    setOpenActionId(null); // إغلاق القائمة العائمة
-    setEditError(null);
-  };
-
-  // حفظ التعديلات
-  const handleSaveEdit = async () => {
-    if (!editingUnit) return;
-
-    if (!editingUnit.name.trim()) {
-      setEditError(t('unit_name_required') || 'Unit Name is required');
       return;
     }
 
-    setIsSaving(true);
-    setEditError(null);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setOpenActionId(id);
 
+    const menuWidth = 160;
+    const left = direction === "rtl" ? rect.right - menuWidth : rect.left;
+
+    setMenuPosition({
+      top: rect.bottom + 5,
+      left: Math.max(10, left),
+    });
+  };
+
+  const openAddModal = () => {
+    setEditingUnit(null);
+    setIsAddModalOpen(true);
+  };
+
+  const openEditModal = (unit: UnitOfMeasure) => {
+    setEditingUnit(unit);
+    setIsAddModalOpen(true);
+  };
+
+  // ✅ ADD (POST)
+  const handleAddUnit = async (name: string) => {
     try {
-      const response = await fetch(
-        `http://takamulerp.runasp.net/UnitOfMeasure?id=${editingUnit.id}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: editingUnit.name,
-            description: editingUnit.description || ''
-          }),
-        }
-      );
+      setLoading(true);
+      setError(null);
 
-      if (!response.ok) {
-        throw new Error('Failed to update unit');
+      const res = await fetch(`${BASE_URL}/api/UnitOfMeasure`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          name,
+          description: name, // لو عندك description مختلف عدليه
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || "Failed to add unit");
       }
 
-      // تحديث القائمة محلياً
-      setUnits(prev => prev.map(u => 
-        u.id === editingUnit.id ? { ...editingUnit } : u
-      ));
+      setIsAddModalOpen(false);
+      setEditingUnit(null);
 
-      setIsEditModalOpen(false);
-      // يمكن إعادة تحميل البيانات من السيرفر للتأكد من التحديث
-      // await loadUnits(); 
-
-    } catch (error) {
-      console.error(error);
-      setEditError(t('save_error') || 'Failed to save changes');
+      // أفضل: رجعي للصفحة 1 بعد الإضافة (اختياري)
+      setPageNumber(1);
+      await fetchUnits();
+    } catch (e: any) {
+      setError(e?.message || "Failed to add unit");
     } finally {
-      setIsSaving(false);
+      setLoading(false);
     }
   };
+
+  // ✅ UPDATE (PUT) حسب Swagger: PUT /api/UnitOfMeasure?id=...
+  const handleUpdateUnit = async (id: number, name: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const res = await fetch(`${BASE_URL}/api/UnitOfMeasure?id=${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          // "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          name,
+          description: name,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || "Failed to update unit");
+      }
+
+      setIsAddModalOpen(false);
+      setEditingUnit(null);
+      await fetchUnits();
+    } catch (e: any) {
+      setError(e?.message || "Failed to update unit");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ DELETE (مع Confirm)
+  // غالباً: DELETE /api/UnitOfMeasure/{id}
+  const handleDeleteUnit = async (id: number) => {
+    const msg = t("confirm_delete_unit") || "هل أنت متأكد من حذف الوحدة؟";
+    if (!window.confirm(msg)) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const res = await fetch(`${BASE_URL}/api/UnitOfMeasure/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          // "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || "Failed to delete unit");
+      }
+
+      setOpenActionId(null);
+      setMenuPosition(null);
+
+      // تحديث UI بدون ما تستنى refetch ممكن، بس refetch أدق
+      await fetchUnits();
+    } catch (e: any) {
+      setError(e?.message || "Failed to delete unit");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   return (
     <div className="space-y-4">
       {/* Breadcrumb */}
       <div className="text-sm text-gray-500 flex items-center gap-1">
-        <span>{t('home')}</span>
+        <span>{t("home")}</span>
         <span>/</span>
-        <span>{t('products')}</span>
+        <span>{t("products")}</span>
         <span>/</span>
-        <span className="text-gray-800 font-medium">{t('units')}</span>
+        <span className="text-gray-800 font-medium">{t("units")}</span>
       </div>
 
-      {/* Header */}
+      {/* Page Header */}
       <div className="bg-white p-4 rounded-t-xl border-b border-gray-200 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-gray-800">
-          {t('units')}
-        </h1>
+        <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">{t("units")}</h1>
+
         <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm hover:bg-opacity-90 transition"
+          onClick={openAddModal}
+          className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-hover transition-colors flex items-center gap-2 text-sm font-medium"
         >
           <PlusCircle size={18} />
-          {t('add_new_unit')}
+          {t("add_new_unit")}
         </button>
       </div>
 
-      {/* Table */}
+      {/* Table Container */}
       <div className="bg-white rounded-b-xl shadow-sm border border-gray-200 p-4 min-h-[300px]">
+        {loading && <div className="text-sm text-gray-500 mb-3">{t("loading") || "Loading..."}</div>}
+        {error && <div className="text-sm text-red-600 mb-3">{error}</div>}
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-right text-gray-500">
             <thead className="text-xs text-white uppercase bg-primary">
               <tr>
-                <th className="px-6 py-3">{t('unit_code')}</th>
-                <th className="px-6 py-3">{t('unit_name')}</th>
-                <th className="px-6 py-3 text-center">{t('actions')}</th>
+                {/* API مفيهوش code فنعرض id */}
+                <th scope="col" className="px-6 py-3 border border-primary-hover">
+                  {t("unit_code") || "Unit Code"}
+                </th>
+                <th scope="col" className="px-6 py-3 border border-primary-hover">
+                  {t("unit_name") || "Unit Name"}
+                </th>
+                <th scope="col" className="px-6 py-3 border border-primary-hover text-center">
+                  {t("actions") || "Actions"}
+                </th>
               </tr>
             </thead>
+
             <tbody>
-              {units.map((unit) => (
-                <tr key={unit.id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-900">
-                    {unit.code}
-                  </td>
-                  <td className="px-6 py-4">
-                    {unit.name}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={(e) => toggleActionMenu(unit.id, e)}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary text-white rounded-md text-xs hover:bg-opacity-90 transition"
-                    >
-                      {t('actions')}
-                      <ChevronDown size={14} />
-                    </button>
+              {!loading && units.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-6 py-8 text-center text-gray-400">
+                    {t("no_data") || "No units found"}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                units.map((unit) => (
+                  <tr key={unit.id} className="bg-white border-b hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap border border-gray-100">
+                      {unit.id}
+                    </td>
+                    <td className="px-6 py-4 border border-gray-100">{unit.name}</td>
+                    <td className="px-6 py-4 border border-gray-100 text-center">
+                      <button
+                        onClick={(e) => toggleActionMenu(unit.id, e)}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary-hover transition-colors"
+                      >
+                        <span>{t("actions") || "Actions"}</span>
+                        <ChevronDown size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Add Modal */}
+        {/* Pagination */}
+        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
+          <div>
+            {t("total") || "Total"}: <span className="font-medium">{totalCount}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              disabled={pageNumber <= 1 || loading}
+              onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
+              className="px-3 py-1 border rounded-md disabled:opacity-50"
+            >
+              {t("prev") || "Prev"}
+            </button>
+
+            <span>
+              {pageNumber} / {totalPages}
+            </span>
+
+            <button
+              disabled={pageNumber >= totalPages || loading}
+              onClick={() => setPageNumber((p) => Math.min(totalPages, p + 1))}
+              className="px-3 py-1 border rounded-md disabled:opacity-50"
+            >
+              {t("next") || "Next"}
+            </button>
+          </div>
+        </div>
+
+        {/* Modal */}
         <AddUnitModal
           isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
-          refreshUnits={loadUnits}
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setEditingUnit(null);
+          }}
+          unit={editingUnit}
+          onSubmit={(name) => {
+            if (editingUnit) {
+              handleUpdateUnit(editingUnit.id, name);
+            } else {
+              handleAddUnit(name);
+            }
+          }}
         />
 
-        {/* Floating Menu */}
+        {/* Floating Action Menu */}
         <AnimatePresence>
           {openActionId !== null && menuPosition && (
             <motion.div
               ref={actionMenuRef}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed bg-white rounded-md shadow-lg border w-40 z-50"
+              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              className={`fixed bg-white rounded-md shadow-lg border border-gray-200 z-50 overflow-hidden w-40 ${
+                direction === "rtl" ? "text-right" : "text-left"
+              }`}
               style={{ top: menuPosition.top, left: menuPosition.left }}
+              onClick={(e) => e.stopPropagation()}
             >
+              {/* Edit */}
               <button
-                onClick={() => handleEditClick(units.find(u => u.id === openActionId)!)}
-                className="w-full px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={() => {
+                  const unit = units.find((u) => u.id === openActionId);
+                  if (unit) openEditModal(unit);
+                  setOpenActionId(null);
+                  setMenuPosition(null);
+                }}
+                className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 ${
+                  direction === "rtl" ? "justify-end" : "justify-start"
+                }`}
               >
-                <Edit size={14} />
-                {t('edit')}
+                {direction === "rtl" ? (
+                  <>
+                    <span>{t("edit") || "Edit"}</span>
+                    <Edit size={14} className="text-gray-500" />
+                  </>
+                ) : (
+                  <>
+                    <Edit size={14} className="text-gray-500" />
+                    <span>{t("edit") || "Edit"}</span>
+                  </>
+                )}
               </button>
+
+              {/* Delete */}
               <button
-                onClick={() => handleDelete(openActionId)}
-                className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={() => {
+                  if (openActionId !== null) handleDeleteUnit(openActionId);
+                }}
+                className={`w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 ${
+                  direction === "rtl" ? "justify-end" : "justify-start"
+                }`}
               >
-                <Trash2 size={14} />
-                {t('delete')}
+                {direction === "rtl" ? (
+                  <>
+                    <span>{t("delete") || "Delete"}</span>
+                    <Trash2 size={14} className="text-red-500" />
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} className="text-red-500" />
+                    <span>{t("delete") || "Delete"}</span>
+                  </>
+                )}
               </button>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-
-      {/* Edit Unit Modal */}
-      <AnimatePresence>
-        {isEditModalOpen && editingUnit && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-            onClick={() => setIsEditModalOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-center p-4 border-b">
-                <h3 className="text-lg font-bold text-gray-800">{t('edit_unit') || 'تعديل الوحدة'}</h3>
-                <button
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4">
-                {editError && (
-                  <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm border border-red-200">
-                    {editError}
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    {t('unit_name') || 'اسم الوحدة'}
-                  </label>
-                  <input
-                    type="text"
-                    value={editingUnit.name}
-                    onChange={(e) => setEditingUnit({ ...editingUnit, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition"
-                    dir={direction}
-                    placeholder={t('enter_unit_name') || 'أدخل اسم الوحدة'}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    {t('unit_description') || 'الوصف'}
-                  </label>
-                  <textarea
-                    value={editingUnit.description || ''}
-                    onChange={(e) => setEditingUnit({ ...editingUnit, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition resize-none"
-                    rows={3}
-                    dir={direction}
-                    placeholder={t('enter_description') || 'أدخل الوصف'}
-                  />
-                </div>
-              </div>
-
-              <div className="p-4 bg-gray-50 flex justify-end gap-3 border-t">
-                <button
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-lg transition"
-                >
-                  {t('cancel') || 'إلغاء'}
-                </button>
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={isSaving}
-                  className="px-4 py-2 text-sm bg-primary text-white rounded-lg hover:bg-opacity-90 transition flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      {t('saving') || 'جاري الحفظ...'}
-                    </>
-                  ) : (
-                    <>
-                      <Save size={16} />
-                      {t('save') || 'حفظ'}
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

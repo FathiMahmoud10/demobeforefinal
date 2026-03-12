@@ -45,7 +45,8 @@ interface SuppliersContextType {
 const SuppliersContext = createContext<SuppliersContextType | undefined>(undefined);
 
 export const SuppliersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-const API_BASE = "/api";  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const API_BASE = AUTH_API_BASE || 'http://takamulerp.runasp.net';
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(false);
 
   const token = useMemo(() => localStorage.getItem('takamul_token'), []);
@@ -109,7 +110,7 @@ const API_BASE = "/api";  const [suppliers, setSuppliers] = useState<Supplier[]>
   const reload = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/Suppliers`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/api/Suppliers`, { headers: authHeaders() });
       if (!res.ok) {
         console.warn('Failed to fetch suppliers. status:', res.status);
         setSuppliers([]);
@@ -163,7 +164,7 @@ const API_BASE = "/api";  const [suppliers, setSuppliers] = useState<Supplier[]>
     try {
       const body = normalizePayload(payload);
 
-      const res = await fetch(`${API_BASE}/Suppliers`, {
+      const res = await fetch(`${API_BASE}/api/Suppliers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(body),
@@ -187,7 +188,7 @@ const API_BASE = "/api";  const [suppliers, setSuppliers] = useState<Supplier[]>
       const merged: Supplier = { ...current, ...updates } as Supplier;
       const body = normalizePayload(merged);
 
-      const res = await fetch(`${API_BASE}/Suppliers/${id}`, {
+      const res = await fetch(`${API_BASE}/api/Suppliers/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(body),
@@ -204,7 +205,7 @@ const API_BASE = "/api";  const [suppliers, setSuppliers] = useState<Supplier[]>
 
   const deleteSupplier = async (id: number): Promise<ApiResult> => {
     try {
-      const res = await fetch(`${API_BASE}/Suppliers/${id}`, {
+      const res = await fetch(`${API_BASE}/api/Suppliers/${id}`, {
         method: 'DELETE',
         headers: authHeaders(),
       });
