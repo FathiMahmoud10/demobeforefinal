@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme {
+  --font-cairo: "Cairo", sans-serif;
+  /* We will use CSS variables for colors to support theming */
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-bg-main: var(--bg-main);
+  --color-bg-card: var(--bg-card);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-input-bg: var(--input-bg);
+}
+
+:root {
+  /* Light Mode Defaults */
+  --primary: #2ecc71; /* Vibrant Green from image */
+  --primary-hover: #27ae60;
+  --secondary: #1e2f5a; /* The requested blue */
+  --accent: #2ecc71; 
+  
+  --bg-main: #f1f5f9; /* Light Gray */
+  --bg-gradient: linear-gradient(to bottom, #f8fafc, #e2e8f0);
+  --bg-card: #ffffff;
+  
+  --text-main: #000000; /* Black text */
+  --text-muted: #555555; /* Dark gray for muted text */
+  
+  --border: #e5e7eb;
+  --input-bg: #f8fafc;
+}
+
+[data-theme='dark'] {
+  /* Dark Mode Overrides */
+  --primary: #2ecc71; /* Keep consistent green */
+  --primary-hover: #27ae60;
+  --secondary: #1e2f5a; 
+  --accent: #2ecc71; 
+  
+  --bg-main: #0a1930; /* Match login page background */
+  --bg-gradient: linear-gradient(to bottom, #0a1930, #050c18);
+  --bg-card: #112240; /* Slightly lighter for cards in dark mode */
+  
+  --text-main: #ffffff; /* Pure white text */
+  --text-muted: #cbd5e1; /* Light gray for muted text */
+  
+  --border: #1d2d50;
+  --input-bg: #0a1930;
+}
+
+body {
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-main);
+  font-family: var(--font-cairo);
+  transition: background 0.3s, color 0.3s;
+}
+
+/* Default input text color */
+input, select, textarea {
+  color: inherit;
+}
+
+/* Ensure all text on dark backgrounds is white in dark mode */
+[data-theme='dark'] .bg-\[var\(--bg-main\)\],
+[data-theme='dark'] .bg-\[var\(--bg-card\)\],
+[data-theme='dark'] .bg-\[var\(--secondary\)\],
+[data-theme='dark'] .bg-\[var\(--input-bg\)\],
+[data-theme='dark'] .bg-primary,
+[data-theme='dark'] .bg-secondary,
+[data-theme='dark'] .bg-gray-900,
+[data-theme='dark'] .bg-slate-900,
+[data-theme='dark'] .bg-blue-900 {
+  color: #ffffff !important;
+}
+
+/* Ensure text is black on light backgrounds in dark mode */
+[data-theme='dark'] .bg-white,
+[data-theme='dark'] .bg-gray-50,
+[data-theme='dark'] .bg-gray-100,
+[data-theme='dark'] .bg-red-50,
+[data-theme='dark'] .bg-red-50\/30,
+[data-theme='dark'] .bg-\[#fff9e6\],
+[data-theme='dark'] .bg-\[#fcf8e3\] {
+  color: #000000 !important;
+}
+
+/* Specific fix for elements inside these light containers in dark mode */
+[data-theme='dark'] .bg-white label,
+[data-theme='dark'] .bg-white span:not(.text-white),
+[data-theme='dark'] .bg-white p,
+[data-theme='dark'] .bg-white h1,
+[data-theme='dark'] .bg-white h2,
+[data-theme='dark'] .bg-white h3,
+[data-theme='dark'] .bg-gray-50 label,
+[data-theme='dark'] .bg-gray-50 span:not(.text-white),
+[data-theme='dark'] .bg-gray-50 p,
+[data-theme='dark'] .bg-gray-100 label,
+[data-theme='dark'] .bg-gray-100 span:not(.text-white),
+[data-theme='dark'] .bg-gray-100 p {
+  color: #000000 !important;
+}
+
+/* Ensure inputs on light backgrounds have black text */
+.bg-white input, .bg-white select, .bg-white textarea,
+.bg-gray-50 input, .bg-gray-50 select, .bg-gray-50 textarea,
+.bg-gray-100 input, .bg-gray-100 select, .bg-gray-100 textarea {
+  color: #000000 !important;
+}
+
+/* Ensure placeholders are visible but muted */
+input::placeholder, textarea::placeholder {
+  color: #666666 !important;
+}
+
+[data-theme='dark'] .dashboard-page svg {
+  color: var(--primary);
+}
+
+
