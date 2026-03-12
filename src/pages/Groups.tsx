@@ -1,16 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { PlusCircle, FileText, ChevronDown, Copy, Trash2, Printer, X, Search } from 'lucide-react';
-import Pagination from '@/components/Pagination';
+import { PlusCircle, FileText, ChevronDown, Copy, Trash2, Printer, X } from 'lucide-react';
 import AddGroupModal from '@/components/AddGroupModal';
-import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
+import Toast from '@/components/Toast';
 import { useLanguage } from '@/context/LanguageContext';
 import { useGroups, Group } from '@/context/GroupsContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import MobileDataCard from '@/components/MobileDataCard';
 
 const Groups = () => {
-  const { t, direction, language } = useLanguage();
+  const { t, direction } = useLanguage();
   const { groups, deleteGroup, duplicateGroup } = useGroups();
   const navigate = useNavigate();
 
@@ -19,21 +17,23 @@ const Groups = () => {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [groupToDelete, setGroupToDelete] = useState<number | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
   const actionMenuRef = useRef<HTMLDivElement>(null);
 
-  const filteredGroups = groups.filter(group =>
-    group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    group.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // toast state
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [showToast, setShowToast] = useState(false);
 
-  const paginatedGroups = filteredGroups.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const prevCountRef = useRef(groups.length);
+
+  useEffect(() => {
+    // When a new group appears, scroll container to bottom so user sees it.
+    if (groups.length > prevCountRef.current) {
+      tableContainerRef.current?.scrollTo({ top: tableContainerRef.current.scrollHeight, behavior: 'smooth' });
+    }
+    prevCountRef.current = groups.length;
+  }, [groups.length]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -54,37 +54,50 @@ const Groups = () => {
     } else {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       setOpenActionId(id);
-      
+
       const menuWidth = 192;
-      const left = direction === 'rtl' 
-        ? rect.right - menuWidth 
+      const left = direction === 'rtl'
+        ? rect.right - menuWidth
         : rect.left;
-        
-      setMenuPosition({ 
-        top: rect.bottom + 5, 
+
+      setMenuPosition({
+        top: rect.bottom + 5,
         left: Math.max(10, left)
       });
     }
   };
 
-  const handleDeleteGroup = (id: number) => {
-    setGroupToDelete(id);
-  };
-
-  const confirmDelete = () => {
-    if (groupToDelete !== null) {
-      deleteGroup(groupToDelete);
-      setGroupToDelete(null);
-      setOpenActionId(null);
-      setMenuPosition(null);
+  const handleDeleteGroup = async (id: number) => {
+    try {
+      await deleteGroup(id);
+      setToastMessage(direction === 'rtl' ? 'تم حذف التصنيف' : 'Group deleted');
+      setToastType('success');
+      setShowToast(true);
+    } catch (e) {
+      console.error('Delete failed:', e);
+      const msg = e instanceof Error ? e.message : 'خطأ';
+      setToastMessage(direction === 'rtl' ? `فشل: ${msg}` : `Failed: ${msg}`);
+      setToastType('error');
+      setShowToast(true);
     }
-  };
-
-  const handleDuplicateGroup = (id: number) => {
-    duplicateGroup(id);
     setOpenActionId(null);
     setMenuPosition(null);
-    alert(direction === 'rtl' ? 'تم تكرار المجموعة بنجاح' : 'Group duplicated successfully');
+  };
+
+  const handleDuplicateGroup = async (id: number) => {
+    try {
+      await duplicateGroup(id);
+      setToastMessage(direction === 'rtl' ? 'تم تكرار المجموعة بنجاح' : 'Group duplicated successfully');
+      setToastType('success');
+      setShowToast(true);
+    } catch (e) {
+      console.error(e);
+      setToastMessage(direction === 'rtl' ? 'فشل تكرار المجموعة' : 'Failed to duplicate group');
+      setToastType('error');
+      setShowToast(true);
+    }
+    setOpenActionId(null);
+    setMenuPosition(null);
   };
 
   const handleRowClick = (group: Group) => {
@@ -106,69 +119,40 @@ const Groups = () => {
 
       {/* Page Header */}
       <div className="bg-white p-4 rounded-t-xl border-b border-gray-200 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-              {t('groups')}
-          </h1>
-          <button 
-            onClick={() => setShowAddModal(true)}
-            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-hover transition-colors flex items-center gap-2 text-sm font-medium"
-          >
-              <PlusCircle size={18} />
-              {t('add_new_group')}
-          </button>
+        <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+          {t('groups')}
+        </h1>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-hover transition-colors flex items-center gap-2 text-sm font-medium"
+        >
+          <PlusCircle size={18} />
+          {t('add_new_group')}
+        </button>
       </div>
 
       {/* Table Container */}
       <div className="bg-white rounded-b-xl shadow-sm border border-gray-200 p-4 min-h-[400px]">
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span>{t('show')}</span>
-                <select 
-                    value={itemsPerPage}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="border border-gray-300 rounded px-2 py-1 outline-none focus:border-primary text-black"
-                >
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                </select>
-            </div>
-            
-            <div className="relative w-full sm:w-64">
-                <input 
-                    type="text" 
-                    placeholder={t('search_placeholder')}
-                    className={`w-full border border-gray-300 rounded px-3 py-1.5 text-sm outline-none focus:border-primary text-black ${direction === 'rtl' ? 'pr-8' : 'pl-8'}`}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <Search className={`absolute top-1/2 -translate-y-1/2 text-gray-400 ${direction === 'rtl' ? 'right-2' : 'left-2'}`} size={16} />
-            </div>
-        </div>
-        <div className="hidden md:block overflow-x-auto">
+        <div ref={tableContainerRef} className="overflow-x-auto">
           <table className="w-full text-sm text-right text-gray-500">
             <thead className="text-xs text-white uppercase bg-primary">
               <tr>
-                <th scope="col" className="px-6 py-3 border border-primary-hover">{t('group_code')}</th>
-                <th scope="col" className="px-6 py-3 border border-primary-hover">{t('group_name')}</th>
-                <th scope="col" className="px-6 py-3 border border-primary-hover text-center">{t('actions')}</th>
+                <th scope="col" className="px-6 py-3 border border-primary-hover whitespace-nowrap">{t('group_code')}</th>
+                <th scope="col" className="px-6 py-3 border border-primary-hover whitespace-nowrap">{t('group_name')}</th>
+                <th scope="col" className="px-6 py-3 border border-primary-hover text-center whitespace-nowrap">{t('actions')}</th>
               </tr>
             </thead>
             <tbody>
-              {paginatedGroups.map((group) => (
-                <tr 
-                  key={`desktop-${group.id}`} 
+              {groups.map((group) => (
+                <tr
+                  key={group.id}
                   className="bg-white border-b hover:bg-gray-50 transition-colors cursor-pointer"
                   onClick={() => handleRowClick(group)}
                 >
                   <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap border border-gray-100">{group.code}</td>
-                  <td className="px-6 py-4 border border-gray-100">{group.name}</td>
-                  <td className="px-6 py-4 border border-gray-100 text-center" onClick={(e) => e.stopPropagation()}>
-                    <button 
+                  <td className="px-6 py-4 border border-gray-100 whitespace-nowrap">{group.name}</td>
+                  <td className="px-6 py-4 border border-gray-100 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    <button
                       onClick={(e) => toggleActionMenu(group.id, e)}
                       className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary-hover transition-colors"
                     >
@@ -182,67 +166,10 @@ const Groups = () => {
           </table>
         </div>
 
-        {/* Mobile View */}
-        <div className="md:hidden space-y-4">
-          {paginatedGroups.map((group) => (
-            <MobileDataCard
-              key={`mobile-${group.id}`}
-              title={group.name}
-              subtitle={group.code}
-              fields={[]}
-              actions={
-                <div className="flex justify-end gap-2">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDuplicateGroup(group.id);
-                    }}
-                    className="p-2 text-primary hover:bg-primary/5 rounded-lg border border-primary/10 transition-colors"
-                    title={t('duplicate_group')}
-                  >
-                    <Copy size={18} />
-                  </button>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteGroup(group.id);
-                    }}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg border border-red-100 transition-colors"
-                    title={t('delete_group')}
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRowClick(group);
-                    }}
-                    className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors"
-                  >
-                    <FileText size={18} />
-                  </button>
-                </div>
-              }
-            />
-          ))}
-          {paginatedGroups.length === 0 && (
-            <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-              {t('no_matching_results')}
-            </div>
-          )}
-        </div>
-
-        <Pagination
-          currentPage={currentPage}
-          totalItems={filteredGroups.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-        />
-
         {/* Floating Action Menu */}
         <AnimatePresence>
           {openActionId !== null && menuPosition && (
-            <motion.div 
+            <motion.div
               ref={actionMenuRef}
               initial={{ opacity: 0, scale: 0.95, y: -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -256,7 +183,7 @@ const Groups = () => {
                 if (!group) return null;
                 return (
                   <>
-                    <button 
+                    <button
                       onMouseDown={(e) => e.stopPropagation()}
                       onClick={() => handleDuplicateGroup(group.id)}
                       className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
@@ -273,7 +200,7 @@ const Groups = () => {
                         </>
                       )}
                     </button>
-                    <button 
+                    <button
                       onMouseDown={(e) => e.stopPropagation()}
                       onClick={() => handleDeleteGroup(group.id)}
                       className={`w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
@@ -297,20 +224,20 @@ const Groups = () => {
           )}
         </AnimatePresence>
 
+        {/* Toast notification */}
+        <Toast
+          isOpen={showToast}
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setShowToast(false)}
+        />
         {/* Details Modal */}
         <AddGroupModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
-
-        <DeleteConfirmationModal
-          isOpen={groupToDelete !== null}
-          onClose={() => setGroupToDelete(null)}
-          onConfirm={confirmDelete}
-          itemName={groups.find(g => g.id === groupToDelete)?.name}
-        />
 
         <AnimatePresence>
           {showModal && selectedGroup && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -319,13 +246,13 @@ const Groups = () => {
               >
                 {/* Modal Header */}
                 <div className="p-4 flex justify-between items-center border-b border-gray-100">
-                  <button 
+                  <button
                     onClick={() => setShowModal(false)}
                     className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400"
                   >
                     <X size={24} />
                   </button>
-                  
+
                   <div className="flex flex-col items-center">
                     <img src="https://picsum.photos/seed/takamul/200/60" alt="Logo" className="h-12 object-contain" referrerPolicy="no-referrer" />
                     <span className="text-primary font-bold text-lg">مؤسسة تكامل</span>
@@ -345,7 +272,7 @@ const Groups = () => {
                       <p className="text-gray-900 font-bold">التاريخ: <span className="font-normal">19:41:00 19/02/2026</span></p>
                       <p className="text-gray-900 font-bold">الرقم المرجعي: <span className="font-normal">5556565</span></p>
                     </div>
-                    
+
                     <div className="flex gap-4">
                       <div className="bg-white p-2 border border-gray-200 rounded-lg">
                         <img src="https://picsum.photos/seed/qr/80/80" alt="QR Code" className="w-20 h-20" referrerPolicy="no-referrer" />

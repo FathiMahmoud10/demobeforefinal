@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { X, UserPlus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Toast from './Toast';
 import { useCustomers } from '@/context/CustomersContext';
 import { useLanguage } from '@/context/LanguageContext';
-import ResponsiveModal from './ResponsiveModal';
 
 interface AddCustomerModalProps {
   isOpen: boolean;
@@ -9,201 +11,210 @@ interface AddCustomerModalProps {
 }
 
 export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalProps) {
-  const { direction } = useLanguage();
+  const { t, direction } = useLanguage();
   const { addCustomer } = useCustomers();
-  
+
   const [formData, setFormData] = useState({
-    name: '',
+    customerName: '',
     email: '',
     phone: '',
-    pricingGroup: 'عام',
-    customerGroup: 'عام',
+    mobile: '',
     taxNumber: '',
-    actualBalance: 0,
-    commercialRegister: '',
-    creditLimit: 0,
-    stopSellingOverdue: false,
-    isTaxable: false
+    address: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    isActive: true,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    addCustomer({
-      ...formData,
-      totalPoints: 0
-    });
-    onClose();
-    // Reset form
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      pricingGroup: 'عام',
-      customerGroup: 'عام',
-      taxNumber: '',
-      actualBalance: 0,
-      commercialRegister: '',
-      creditLimit: 0,
-      stopSellingOverdue: false,
-      isTaxable: false
-    });
+  const [toastOpen, setToastOpen] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [submitting, setSubmitting] = useState(false);
+
+  const showToast = (type: 'success' | 'error', msg: string) => {
+    setToastType(type);
+    setToastMsg(msg);
+    setToastOpen(true);
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+
+    const payload = {
+      ...formData,
+      customerName: formData.customerName.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim(),
+      mobile: (formData.mobile.trim() || formData.phone.trim()),
+      taxNumber: formData.taxNumber.trim(),
+      address: formData.address.trim(),
+      city: formData.city.trim(),
+      state: formData.state.trim(),
+      postalCode: formData.postalCode.trim(),
+      isActive: true,
+    };
+
+    try {
+      const res = await addCustomer(payload as any);
+      if (res.ok) {
+        showToast('success', t('operation_completed_successfully') || 'تم الإضافة بنجاح');
+        setFormData({
+          customerName: '',
+          email: '',
+          phone: '',
+          mobile: '',
+          taxNumber: '',
+          address: '',
+          city: '',
+          state: '',
+          postalCode: '',
+          isActive: true,
+        });
+        setTimeout(() => onClose(), 500);
+      } else {
+        showToast('error', res.message || (t('login_network_error') || 'فشل الإضافة'));
+      }
+    } catch (err) {
+      showToast('error', t('login_network_error') || 'فشل الإضافة');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <ResponsiveModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="اضافة عميل"
-      maxWidth="max-w-4xl"
-    >
-      <form onSubmit={handleSubmit} className="space-y-4 p-6" dir={direction}>
-        <p className="text-center text-gray-500 text-xs">
-          برجاء ادخال المعلومات أدناه. تسميات الحقول التي تحمل علامة * هي حقول اجبارية .
-        </p>
-
-        {/* Customer Type Selection */}
-        <div className="bg-[#fff9e6] p-3 rounded-xl border border-[#ffeeba] space-y-2">
-          <p className="text-center font-bold text-[#856404] text-sm">برجاء تحديد نوع العميل</p>
-          <div className="flex justify-center gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="radio" 
-                name="isTaxable" 
-                checked={!formData.isTaxable} 
-                onChange={() => setFormData({...formData, isTaxable: false})}
-                className="w-4 h-4 accent-[#2ecc71]"
-              />
-              <span className="text-xs font-medium text-gray-700">غير مسجل بالضريبة</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="radio" 
-                name="isTaxable" 
-                checked={formData.isTaxable} 
-                onChange={() => setFormData({...formData, isTaxable: true})}
-                className="w-4 h-4 accent-[#2ecc71]"
-              />
-              <span className="text-xs font-medium text-gray-700">مسجل بالضريبة</span>
-            </label>
-          </div>
-        </div>
-
-        {/* Form Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div className="space-y-1">
-            <label className="block text-xs font-bold text-[#2ecc71] text-right">مجموعة العملاء *</label>
-            <select 
-              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-[#2ecc71] bg-gray-50"
-              value={formData.customerGroup}
-              onChange={(e) => setFormData({...formData, customerGroup: e.target.value})}
-            >
-              <option value="عام">عام</option>
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="block text-xs font-bold text-[#2ecc71] text-right">مجموعة التسعيرة</label>
-            <select 
-              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-[#2ecc71] bg-gray-50"
-              value={formData.pricingGroup}
-              onChange={(e) => setFormData({...formData, pricingGroup: e.target.value})}
-            >
-              <option value="عام">عام</option>
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="block text-xs font-bold text-[#2ecc71] text-right">اسم العميل *</label>
-            <input 
-              type="text" 
-              required
-              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-[#2ecc71]"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-xs font-bold text-[#2ecc71] text-right">هاتف</label>
-            <input 
-              type="text" 
-              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-[#2ecc71]"
-              value={formData.phone}
-              onChange={(e) => setFormData({...formData, phone: e.target.value})}
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="block text-xs font-bold text-[#2ecc71] text-right">عنوان البريد الإلكتروني</label>
-            <input 
-              type="email" 
-              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-[#2ecc71]"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="block text-xs font-bold text-[#2ecc71] text-right">السجل التجاري</label>
-            <input 
-              type="text" 
-              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-[#2ecc71]"
-              value={formData.commercialRegister}
-              onChange={(e) => setFormData({...formData, commercialRegister: e.target.value})}
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-xs font-bold text-[#2ecc71] text-right">رصيد افتتاحي *( المديونية بالسالب)</label>
-            <input 
-              type="number" 
-              required
-              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-[#2ecc71] text-center"
-              value={formData.actualBalance}
-              onChange={(e) => setFormData({...formData, actualBalance: Number(e.target.value)})}
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="block text-xs font-bold text-[#2ecc71] text-right">الحد الائتماني *</label>
-            <input 
-              type="number" 
-              required
-              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-[#2ecc71] text-center"
-              value={formData.creditLimit}
-              onChange={(e) => setFormData({...formData, creditLimit: Number(e.target.value)})}
-            />
-          </div>
-          {formData.isTaxable && (
-            <div className="space-y-1">
-              <label className="block text-xs font-bold text-[#2ecc71] text-right">الرقم الضريبي *</label>
-              <input 
-                type="text" 
-                required={formData.isTaxable}
-                className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-[#2ecc71]"
-                value={formData.taxNumber}
-                onChange={(e) => setFormData({...formData, taxNumber: e.target.value})}
-              />
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-md" dir={direction}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden"
+        >
+          <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white">
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <X size={24} />
+            </button>
+            <div className="flex items-center gap-2 text-[#2ecc71]">
+              <h2 className="text-xl font-bold">اضافة عميل</h2>
+              <UserPlus size={24} />
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Checkbox */}
-        <div className="flex items-center gap-2 justify-end">
-          <span className="text-xs font-bold text-[#2ecc71]">ايقاف البيع في حالة وجود مبالغ مستحقة</span>
-          <input 
-            type="checkbox" 
-            checked={formData.stopSellingOverdue}
-            onChange={(e) => setFormData({...formData, stopSellingOverdue: e.target.checked})}
-            className="w-4 h-4 accent-[#2ecc71]"
-          />
-        </div>
+          <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+            <p className="text-center text-gray-500 text-sm">
+              برجاء ادخال المعلومات أدناه. الحقول التي تحمل علامة * إجبارية.
+            </p>
 
-        {/* Submit Button */}
-        <div className="flex justify-end pt-2">
-          <button 
-            type="submit"
-            className="bg-[#00a65a] text-white px-8 py-2 rounded-lg font-bold hover:bg-[#008d4c] transition-colors shadow-md text-sm"
-          >
-            اضافة عميل
-          </button>
-        </div>
-      </form>
-    </ResponsiveModal>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Field label="اسم العميل *">
+                <input
+                  required
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71]"
+                  value={formData.customerName}
+                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                />
+              </Field>
+
+              <Field label="عنوان البريد الإلكتروني">
+                <input
+                  type="email"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71]"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </Field>
+
+              <Field label="هاتف">
+                <input
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71]"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </Field>
+
+              <Field label="موبايل">
+                <input
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71]"
+                  value={formData.mobile}
+                  onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                />
+              </Field>
+
+              <Field label="الرقم الضريبي">
+                <input
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71]"
+                  value={formData.taxNumber}
+                  onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })}
+                />
+              </Field>
+
+              <div />
+
+              {/* ✅ required fields */}
+              <Field label="العنوان *">
+                <input
+                  required
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71]"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                />
+              </Field>
+
+              <Field label="المدينة *">
+                <input
+                  required
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71]"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                />
+              </Field>
+
+              <Field label="المحافظة/الولاية *">
+                <input
+                  required
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71]"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                />
+              </Field>
+
+              <Field label="الرمز البريدي">
+                <input
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#2ecc71]"
+                  value={formData.postalCode}
+                  onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+                />
+              </Field>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="bg-[#00a65a] text-white px-10 py-2.5 rounded-lg font-bold hover:bg-[#008d4c] transition-colors shadow-md disabled:opacity-60"
+              >
+                {t('add_customer_button') || 'اضافة عميل'}
+              </button>
+            </div>
+          </form>
+        </motion.div>
+      </div>
+
+      <Toast isOpen={toastOpen} message={toastMsg} type={toastType} onClose={() => setToastOpen(false)} />
+    </AnimatePresence>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-sm font-bold text-[#2ecc71] text-right">{label}</label>
+      {children}
+    </div>
   );
 }

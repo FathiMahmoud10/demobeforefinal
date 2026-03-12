@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
-import { DollarSign, Menu, Search, Link as LinkIcon, ChevronDown, ChevronUp, Edit2, Trash2, FileText } from 'lucide-react';
+import { DollarSign, Menu, Search, Link as LinkIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
-import MobileDataCard from '@/components/MobileDataCard';
-import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 
 export default function ExpensesList() {
-  const { t, direction, language } = useLanguage();
+  const { t, direction } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [entriesCount, setEntriesCount] = useState(10);
-  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -67,8 +64,8 @@ export default function ExpensesList() {
           </div>
         </div>
 
-        {/* Table - Desktop */}
-        <div className="hidden md:block overflow-x-auto">
+        {/* Table */}
+        <div className="overflow-x-auto">
           <table className="w-full text-right" dir="rtl">
             <thead>
               <tr className="bg-[#0f5132] text-white">
@@ -142,15 +139,24 @@ export default function ExpensesList() {
                   لا توجد بيانات في الجدول
                 </td>
               </tr>
+              {/* Dummy Data Row (as seen in the image) */}
+              <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <td className="p-3 text-center border-l border-gray-100">
+                  <input type="checkbox" className="rounded border-gray-300" />
+                </td>
+                <td className="p-3 text-sm text-gray-600 border-l border-gray-100">[التاريخ yy-mm-dd]</td>
+                <td className="p-3 text-sm text-gray-600 border-l border-gray-100">[مرجع]</td>
+                <td className="p-3 text-sm text-gray-600 border-l border-gray-100">[التصنيفات الرئيسية]</td>
+                <td className="p-3 text-sm text-gray-600 border-l border-gray-100">0.00</td>
+                <td className="p-3 text-sm text-gray-600 border-l border-gray-100">[مذكرة]</td>
+                <td className="p-3 text-sm text-gray-600 border-l border-gray-100">[مدخل البيانات]</td>
+                <td className="p-3 text-center border-l border-gray-100">
+                  <LinkIcon size={16} className="mx-auto text-gray-400" />
+                </td>
+                <td className="p-3 text-sm text-gray-600 text-center">الإجراءات</td>
+              </tr>
             </tbody>
           </table>
-        </div>
-
-        {/* Mobile View */}
-        <div className="md:hidden space-y-4 p-4">
-          <div className="p-8 text-center text-gray-400 italic bg-gray-50 rounded-lg border border-dashed border-gray-200">
-            لا توجد بيانات في الجدول
-          </div>
         </div>
 
         {/* Footer / Pagination */}
@@ -168,16 +174,6 @@ export default function ExpensesList() {
           </div>
         </div>
       </div>
-
-      <DeleteConfirmationModal
-        isOpen={expenseToDelete !== null}
-        onClose={() => setExpenseToDelete(null)}
-        onConfirm={() => {
-          // In a real app, delete the expense
-          setExpenseToDelete(null);
-        }}
-        itemName={language === 'ar' ? 'هذا المصروف' : 'this expense'}
-      />
     </div>
   );
 }

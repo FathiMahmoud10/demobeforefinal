@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FileText, Plus, Trash2, Bold, Italic, Underline, List, AlignLeft, AlignCenter, AlignRight, Link as LinkIcon, Search, ChevronDown } from 'lucide-react';
+import { FileText, Plus, Trash2, Bold, Italic, Underline, List, AlignLeft, AlignCenter, AlignRight, Link as LinkIcon, Search } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAdjustments } from '@/context/AdjustmentsContext';
 import { useProducts } from '@/context/ProductsContext';
-import MobileDataCard from '@/components/MobileDataCard';
 
 const EditQuantityAdjustment = () => {
   const { t, direction } = useLanguage();
@@ -150,7 +149,7 @@ const EditQuantityAdjustment = () => {
         <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 dark:text-black mb-1">{t('attach_documents')}</label>
             <div className="flex items-center gap-2">
-                <label className="cursor-pointer bg-primary hover:bg-primary-hover text-white px-4 h-10 flex items-center justify-center rounded-md text-sm transition-colors whitespace-nowrap">
+                <label className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-4 h-10 flex items-center justify-center rounded-md text-sm transition-colors whitespace-nowrap">
                     {t('browse')}
                     <input type="file" className="hidden" onChange={(e) => {
                         const fileName = e.target.files?.[0]?.name;
@@ -206,9 +205,8 @@ const EditQuantityAdjustment = () => {
         </div>
 
         <div className="overflow-x-auto">
-            {/* Desktop Table */}
-            <table className="hidden md:table w-full text-sm text-right text-black">
-                <thead className="bg-primary text-white">
+            <table className="w-full text-sm text-right text-black">
+                <thead className="bg-red-800 text-white">
                     <tr>
                         <th className="p-2">اسم الصنف (كود الصنف)</th>
                         <th className="p-2">الكمية المتاحة</th>
@@ -219,9 +217,9 @@ const EditQuantityAdjustment = () => {
                         <th className="p-2"><Trash2 size={16} /></th>
                     </tr>
                 </thead>
-                <tbody className="text-black bg-green-50/20">
-                    {formData.items.map((item: any) => (
-                      <tr key={item.id} className="bg-green-50/30 border-b border-gray-100 hover:bg-green-100/50 transition-colors">
+                <tbody className="text-black">
+                    {formData.items.map(item => (
+                      <tr key={item.id} className="border-b border-gray-100">
                           <td className="p-2">{item.code} - {item.name}</td>
                           <td className="p-2 font-medium">{item.availableQty}</td>
                           <td className="p-2">
@@ -258,88 +256,11 @@ const EditQuantityAdjustment = () => {
                               className="border border-gray-300 rounded-md p-1 text-sm w-full bg-white text-black" 
                             />
                           </td>
-                          <td className="p-2"><button onClick={() => handleRemoveItem(item.id)} className="text-red-600 hover:text-red-800 transition-colors"><Trash2 size={16} /></button></td>
+                          <td className="p-2"><button className="text-red-600 hover:text-red-800 transition-colors"><Trash2 size={16} /></button></td>
                       </tr>
                     ))}
                 </tbody>
             </table>
-
-            {/* Mobile Cards */}
-            <div className="md:hidden space-y-4">
-              {formData.items.map((item: any) => (
-                <MobileDataCard
-                  key={item.id}
-                  title={`${item.code} - ${item.name}`}
-                  subtitle={`${t('available_quantity')}: ${item.availableQty}`}
-                  fields={[
-                    { 
-                      label: t('type'), 
-                      value: (
-                        <select 
-                          value={item.type} 
-                          onChange={(e) => handleItemChange(item.id, 'type', e.target.value)}
-                          className="border border-gray-300 rounded-md p-1 text-sm bg-white text-black w-full"
-                        >
-                          <option>طرح</option>
-                          <option>إضافة</option>
-                        </select>
-                      ) 
-                    },
-                    { 
-                      label: t('quantity'), 
-                      value: (
-                        <input 
-                          type="text" 
-                          value={item.qty} 
-                          onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
-                          className="border border-gray-300 rounded-md p-1 text-sm w-full bg-white text-black font-bold" 
-                        />
-                      ) 
-                    },
-                    { 
-                      label: t('unit_cost'), 
-                      value: (
-                        <input 
-                          type="text" 
-                          value={item.cost} 
-                          onChange={(e) => handleItemChange(item.id, 'cost', e.target.value)}
-                          className="border border-gray-300 rounded-md p-1 text-sm w-full bg-white text-black" 
-                        />
-                      ) 
-                    },
-                    { 
-                      label: t('serial_number'), 
-                      value: (
-                        <input 
-                          type="text" 
-                          value={item.serial}
-                          onChange={(e) => handleItemChange(item.id, 'serial', e.target.value)}
-                          className="border border-gray-300 rounded-md p-1 text-sm w-full bg-white text-black" 
-                          placeholder={t('serial_number')}
-                        />
-                      ) 
-                    },
-                  ]}
-                  actions={
-                    <div className="flex justify-end">
-                      <button 
-                        type="button"
-                        onClick={() => handleRemoveItem(item.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg border border-red-100 transition-colors flex items-center gap-1 text-xs font-bold"
-                      >
-                        <Trash2 size={16} />
-                        {t('delete')}
-                      </button>
-                    </div>
-                  }
-                />
-              ))}
-              {formData.items.length === 0 && (
-                <div className="p-8 text-center text-gray-400 italic bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                  {direction === 'rtl' ? 'لا توجد أصناف مضافة' : 'No items added'}
-                </div>
-              )}
-            </div>
         </div>
 
         <div className="mt-6">
@@ -366,7 +287,7 @@ const EditQuantityAdjustment = () => {
         <div className="flex justify-end gap-2 mt-6">
             <button 
               onClick={handleComplete}
-              className="bg-primary text-white px-6 py-2 rounded-md font-medium hover:bg-primary-hover transition-colors"
+              className="bg-red-800 text-white px-6 py-2 rounded-md font-medium hover:bg-red-900 transition-colors"
             >
               {t('complete_process')}
             </button>

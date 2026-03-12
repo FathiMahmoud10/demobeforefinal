@@ -11,14 +11,11 @@ import {
   Type,
   Calendar,
   DollarSign,
-  Search,
-  Barcode,
-  PlusCircle
+  Search
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import { useLanguage } from '../context/LanguageContext';
 import { useProducts } from '../context/ProductsContext';
-import MobileDataCard from '@/components/MobileDataCard';
 
 const FormatBox = ({ title, icon: Icon, colorClass, borderColorClass, direction }: any) => {
   const { t } = useLanguage();
@@ -131,7 +128,7 @@ const BarcodeRow = ({ item, onRemove, onUpdateQty }: { key?: any, item: any, onR
   };
 
   return (
-    <tr className="border-b border-gray-200 bg-green-50/30 hover:bg-green-100/50 transition-colors">
+    <tr className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
       <td className="p-3 border border-gray-200 text-center">
         <button onClick={onRemove} className="text-red-500 hover:text-red-700">
           <Trash2 size={16} />
@@ -252,28 +249,21 @@ export default function PrintBarcode() {
           {/* Add Product Section */}
           <div className="bg-white border border-gray-200 rounded-md p-4 mb-6">
               <div className="mb-4 relative" ref={searchRef}>
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 gap-2">
-                      <Barcode size={24} className="text-gray-400" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-right">{t('add_product_label')}</label>
+                  <div className="relative">
+                    <input 
+                        type="text" 
+                        placeholder={t('add_product_label')} 
+                        value={searchTerm}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setShowDropdown(true);
+                        }}
+                        onFocus={() => setShowDropdown(true)}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-[#8b0000] text-right pr-10" 
+                    />
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   </div>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                      <button 
-                        type="button" 
-                        className="p-1 bg-primary text-white rounded-full hover:bg-primary-hover"
-                      >
-                        <Plus size={20} />
-                      </button>
-                  </div>
-                  <input 
-                    type="text" 
-                    placeholder={t('please_add_items')}
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setShowDropdown(true);
-                    }}
-                    onFocus={() => setShowDropdown(true)}
-                    className="w-full border-2 border-blue-400 rounded-lg px-12 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-100 text-right"
-                  />
                   
                   {showDropdown && searchTerm && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
@@ -297,19 +287,19 @@ export default function PrintBarcode() {
                   )}
               </div>
 
-              {/* Table - Desktop */}
-              <div className="hidden md:block overflow-x-auto">
+              {/* Table */}
+              <div className="overflow-x-auto">
                   <table className="w-full min-w-[800px] text-sm text-right border-collapse">
                       <thead>
                           <tr className="bg-primary text-white">
-                              <th className="p-3 border border-primary-hover w-10 text-center whitespace-nowrap">
-                                  <Trash2 size={16} className="mx-auto" />
+                              <th className="p-3 border border-primary/20 w-10 text-center whitespace-nowrap">
+                                  <Trash2 size={16} />
                               </th>
-                              <th className="p-3 border border-primary-hover whitespace-nowrap">{t('activity_name')}</th>
-                              <th className="p-3 border border-primary-hover whitespace-nowrap">{t('expiry')}</th>
-                              <th className="p-3 border border-primary-hover whitespace-nowrap">{t('production')}</th>
-                              <th className="p-3 border border-primary-hover whitespace-nowrap">{t('quantity')}</th>
-                              <th className="p-3 border border-primary-hover whitespace-nowrap">{t('product_name_code')}</th>
+                              <th className="p-3 border border-primary/20 whitespace-nowrap">{t('activity_name')}</th>
+                              <th className="p-3 border border-primary/20 whitespace-nowrap">{t('expiry')}</th>
+                              <th className="p-3 border border-primary/20 whitespace-nowrap">{t('production')}</th>
+                              <th className="p-3 border border-primary/20 whitespace-nowrap">{t('quantity')}</th>
+                              <th className="p-3 border border-primary/20 whitespace-nowrap">{t('product_name_code')}</th>
                           </tr>
                       </thead>
                       <tbody>
@@ -330,60 +320,6 @@ export default function PrintBarcode() {
                           )}
                       </tbody>
                   </table>
-              </div>
-
-              {/* Mobile View */}
-              <div className="md:hidden space-y-4">
-                {selectedItems.map((item) => (
-                  <MobileDataCard
-                    key={item.id}
-                    title={item.name}
-                    subtitle={item.code}
-                    fields={[
-                      { label: t('activity_name'), value: item.supplier || 'مؤسسة تكامل' },
-                      { label: t('expiry'), value: '-' },
-                      { label: t('production'), value: '-' },
-                    ]}
-                    actions={
-                      <div className="flex items-center justify-between w-full gap-4">
-                        <div className="flex items-center border border-gray-300 rounded-md">
-                          <button 
-                            onClick={() => handleUpdateQty(item.id, Math.max(0, item.qty - 1))}
-                            className="px-3 py-1 hover:bg-gray-100 text-gray-600 border-l border-gray-300"
-                          >
-                            <Minus size={14} />
-                          </button>
-                          <input 
-                            type="text" 
-                            value={item.qty} 
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value);
-                              if (!isNaN(val)) handleUpdateQty(item.id, val);
-                            }}
-                            className="w-12 text-center text-sm outline-none py-1" 
-                          />
-                          <button 
-                            onClick={() => handleUpdateQty(item.id, item.qty + 1)}
-                            className="px-3 py-1 hover:bg-gray-100 text-gray-600 border-r border-gray-300"
-                          >
-                            <Plus size={14} />
-                          </button>
-                        </div>
-                        <button 
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg border border-red-100 transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    }
-                  />
-                ))}
-                {selectedItems.length === 0 && (
-                  <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                    لم يتم اختيار أي أصناف
-                  </div>
-                )}
               </div>
           </div>
 

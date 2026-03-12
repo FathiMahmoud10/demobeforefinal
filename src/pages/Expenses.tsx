@@ -13,8 +13,6 @@ import {
 import { useLanguage } from '@/context/LanguageContext';
 import { useExpenses } from '@/context/ExpensesContext';
 import AddExpenseModal from '@/components/AddExpenseModal';
-import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
-import MobileDataCard from '@/components/MobileDataCard';
 import { Expense } from '@/types';
 
 export default function Expenses() {
@@ -24,7 +22,6 @@ export default function Expenses() {
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
-  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
 
   const handleEdit = (expense: Expense) => {
     setSelectedExpense(expense);
@@ -34,17 +31,6 @@ export default function Expenses() {
   const handleAdd = () => {
     setSelectedExpense(null);
     setIsModalOpen(true);
-  };
-
-  const handleDelete = (id: string) => {
-    setExpenseToDelete(id);
-  };
-
-  const confirmDelete = () => {
-    if (expenseToDelete) {
-      deleteExpense(expenseToDelete);
-      setExpenseToDelete(null);
-    }
   };
 
   const filteredExpenses = expenses.filter(expense => 
@@ -107,8 +93,7 @@ export default function Expenses() {
           </div>
         </div>
 
-        {/* Table - Desktop */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="overflow-x-auto">
           <table className="w-full text-right border-collapse">
             <thead>
               <tr className="bg-green-500 text-white">
@@ -127,10 +112,10 @@ export default function Expenses() {
                 <th className="p-4 text-sm font-bold border-b border-white/10">{t('actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--border)] bg-green-50/20">
+            <tbody className="divide-y divide-[var(--border)]">
               {filteredExpenses.length > 0 ? (
                 filteredExpenses.map((expense) => (
-                  <tr key={`desktop-${expense.id}`} className="bg-green-50/30 hover:bg-green-100/50 transition-colors group">
+                  <tr key={expense.id} className="hover:bg-[var(--bg-main)] transition-colors group">
                     <td className="p-4 text-sm">
                       <input type="checkbox" className="rounded border-[var(--border)] text-emerald-600 focus:ring-emerald-500" />
                     </td>
@@ -155,7 +140,7 @@ export default function Expenses() {
                           <Edit size={16} />
                         </button>
                         <button 
-                          onClick={() => handleDelete(expense.id)}
+                          onClick={() => deleteExpense(expense.id)}
                           className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
                           title={t('delete')}
                         >
@@ -177,47 +162,6 @@ export default function Expenses() {
               )}
             </tbody>
           </table>
-        </div>
-
-        {/* Mobile View */}
-        <div className="md:hidden space-y-4 p-4">
-          {filteredExpenses.map((expense) => (
-            <MobileDataCard
-              key={`mobile-${expense.id}`}
-              title={expense.reference}
-              subtitle={expense.date}
-              fields={[
-                { label: t('expense_categories'), value: expense.category },
-                { label: t('paid'), value: (expense.amount || 0).toFixed(2), isBold: true },
-                { label: t('description'), value: expense.description },
-                { label: t('data_entry'), value: expense.createdBy },
-              ]}
-              actions={
-                <div className="flex justify-end gap-2">
-                  <button 
-                    onClick={() => handleDelete(expense.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg border border-red-100 transition-colors"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                  <button 
-                    onClick={() => handleEdit(expense)}
-                    className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg border border-emerald-100 transition-colors"
-                  >
-                    <Edit size={18} />
-                  </button>
-                </div>
-              }
-            />
-          ))}
-          {filteredExpenses.length === 0 && (
-            <div className="p-8 text-center text-[var(--text-muted)] bg-[var(--bg-main)] rounded-xl border border-dashed border-[var(--border)]">
-              <div className="flex flex-col items-center gap-2">
-                <FileText size={48} className="opacity-20" />
-                <p>{t('no_data_in_table')}</p>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="p-4 border-t border-[var(--border)] flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -246,13 +190,6 @@ export default function Expenses() {
           setSelectedExpense(null);
         }} 
         expense={selectedExpense}
-      />
-
-      <DeleteConfirmationModal
-        isOpen={expenseToDelete !== null}
-        onClose={() => setExpenseToDelete(null)}
-        onConfirm={confirmDelete}
-        itemName={expenses.find(e => e.id === expenseToDelete)?.category}
       />
     </div>
   );

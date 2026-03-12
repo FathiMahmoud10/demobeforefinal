@@ -15,15 +15,13 @@ import {
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { motion, AnimatePresence } from 'motion/react';
-import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 
 export default function ViewQuote() {
-  const { t, direction, language } = useLanguage();
+  const { t, direction } = useLanguage();
   const navigate = useNavigate();
   const quoteRef = useRef<HTMLDivElement>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const downloadPDF = async () => {
     if (!quoteRef.current) return;
@@ -63,8 +61,8 @@ export default function ViewQuote() {
       {/* Page Header */}
       <div className="bg-white p-4 rounded-t-xl border-b border-gray-200 flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <FileText size={20} className="text-green-600" />
-          <h1 className="text-lg font-bold text-green-600">
+          <FileText size={20} className="text-[#8b0000]" />
+          <h1 className="text-lg font-bold text-[#8b0000]">
             {t('quote_no_title')}. 3
           </h1>
         </div>
@@ -83,10 +81,10 @@ export default function ViewQuote() {
             <p className="text-sm text-gray-600">سعود بن فيصل</p>
             <p className="text-sm text-gray-600">الرياض 13251 الملقا</p>
             <p className="text-sm text-gray-600">SA</p>
-            <p className="text-sm text-green-600 mt-2">السجل التجاري: 1234123123</p>
-            <p className="text-sm text-green-600">رخصة البلدية: 50608090</p>
-            <p className="text-sm text-green-600">الهاتف: 0146580073</p>
-            <p className="text-sm text-green-600">البريد الإلكتروني: info@posit2030.com</p>
+            <p className="text-sm text-[#8b0000] mt-2">السجل التجاري: 1234123123</p>
+            <p className="text-sm text-[#8b0000]">رخصة البلدية: 50608090</p>
+            <p className="text-sm text-[#8b0000]">الهاتف: 0146580073</p>
+            <p className="text-sm text-[#8b0000]">البريد الإلكتروني: info@posit2030.com</p>
           </div>
 
           {/* Customer Info */}
@@ -98,17 +96,17 @@ export default function ViewQuote() {
             <p className="text-sm text-gray-600">1</p>
             <p className="text-sm text-gray-600">. 00000 1</p>
             <p className="text-sm text-gray-600">SA</p>
-            <p className="text-sm text-green-600 mt-2">الهاتف: 056230354111</p>
-            <p className="text-sm text-green-600">البريد الإلكتروني: mtawfik12b@gmail.com</p>
+            <p className="text-sm text-[#8b0000] mt-2">الهاتف: 056230354111</p>
+            <p className="text-sm text-[#8b0000]">البريد الإلكتروني: mtawfik12b@gmail.com</p>
           </div>
         </div>
 
         {/* Quote Details & Barcode */}
         <div className="flex justify-between items-end mb-8">
           <div className="text-right space-y-1">
-            <p className="text-sm font-bold text-green-600">{t('ref_no')}: QUOTE2025/09/0003</p>
-            <p className="text-sm font-bold text-green-600">{t('date')}: 20:21:00 22/09/2025</p>
-            <p className="text-sm font-bold text-green-600">{t('status')}: pending</p>
+            <p className="text-sm font-bold text-[#8b0000]">{t('ref_no')}: QUOTE2025/09/0003</p>
+            <p className="text-sm font-bold text-[#8b0000]">{t('date')}: 20:21:00 22/09/2025</p>
+            <p className="text-sm font-bold text-[#8b0000]">{t('status')}: pending</p>
           </div>
           <div className="flex flex-col items-center">
              <img src="https://bwipjs-api.metafloor.com/?bcid=code128&text=QUOTE2025/09/0003&scale=3&incltext&textxalign=center" alt="Barcode" className="h-16" />
@@ -165,7 +163,7 @@ export default function ViewQuote() {
         </div>
 
         {/* Footer Info */}
-        <div className="text-sm text-green-600 space-y-1 text-right mb-8 bg-gray-50 p-4 rounded">
+        <div className="text-sm text-[#8b0000] space-y-1 text-right mb-8 bg-gray-50 p-4 rounded">
           <p>{t('data_entry')}: mm .</p>
           <p>{t('date')}: 20:21:00 22/09/2025</p>
           <p>{t('updated_by')}: ss ss</p>
@@ -177,7 +175,7 @@ export default function ViewQuote() {
       <div className="flex flex-wrap text-white text-sm font-bold">
          <button 
             className="flex-1 bg-[#e74c3c] hover:bg-[#c0392b] py-3 px-4 flex items-center justify-center gap-2"
-            onClick={() => setShowDeleteModal(true)}
+            onClick={() => alert('Delete')}
           >
             <Trash2 size={18} />
             {t('delete_btn')}
@@ -197,15 +195,15 @@ export default function ViewQuote() {
             {t('email_btn')}
           </button>
           <button 
-            className="flex-1 bg-green-500 hover:bg-green-600 py-3 px-4 flex items-center justify-center gap-2"
+            className="flex-1 bg-[#8b0000] hover:bg-[#a52a2a] py-3 px-4 flex items-center justify-center gap-2"
             onClick={downloadPDF}
           >
             <Download size={18} />
             {t('pdf_btn')}
           </button>
           <button 
-            className="flex-[1.5] bg-green-500 hover:bg-green-600 py-3 px-4 flex items-center justify-center gap-2 border-r border-green-600"
-            onClick={() => navigate('/sales/create-from-quote')}
+            className="flex-[1.5] bg-[#8b0000] hover:bg-[#a52a2a] py-3 px-4 flex items-center justify-center gap-2 border-r border-[#a52a2a]"
+            onClick={() => navigate('/sales/create')}
           >
             <PlusCircle size={18} />
             {t('create_sales_invoice')}
@@ -223,7 +221,7 @@ export default function ViewQuote() {
               onClick={e => e.stopPropagation()}
             >
               <div className="bg-white border-b p-4 flex justify-between items-center rounded-t-lg">
-                <h2 className="text-lg font-bold text-green-600">ارسال عرض السعر بالبريد الالكتروني</h2>
+                <h2 className="text-lg font-bold text-[#8b0000]">ارسال عرض السعر بالبريد الالكتروني</h2>
                 <button onClick={() => setShowEmailModal(false)} className="text-gray-400 hover:text-gray-600">
                   <X size={24} />
                 </button>
@@ -232,30 +230,30 @@ export default function ViewQuote() {
               <div className="p-6 space-y-4" dir="rtl">
                 <p className="text-sm text-red-600">برجاء ادخال المعلومات أدناه. تسميات الحقول التي تحمل علامة * هي حقول اجبارية .</p>
                 <div className="space-y-2 text-right">
-                  <label className="text-sm font-bold text-green-600">إلى *</label>
-                  <input type="email" defaultValue="mtawfik12b@gmail.com" className="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-green-600" />
+                  <label className="text-sm font-bold text-[#8b0000]">إلى *</label>
+                  <input type="email" defaultValue="mtawfik12b@gmail.com" className="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-red-600" />
                 </div>
                 {showBcc && (
                   <>
                     <div className="space-y-2 text-right">
-                      <label className="text-sm font-bold text-green-600">شبكة</label>
-                      <input type="text" className="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-green-600" />
+                      <label className="text-sm font-bold text-[#8b0000]">شبكة</label>
+                      <input type="text" className="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-red-600" />
                     </div>
                     <div className="space-y-2 text-right">
-                      <label className="text-sm font-bold text-green-600">BCC</label>
-                      <input type="text" className="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-green-600" />
+                      <label className="text-sm font-bold text-[#8b0000]">BCC</label>
+                      <input type="text" className="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-red-600" />
                     </div>
                   </>
                 )}
                 <div className="space-y-2 text-right">
-                  <label className="text-sm font-bold text-green-600">موضوع *</label>
-                  <input type="text" defaultValue="عرض أسعار (QUOTE2025/09/0003) من مؤسسة تكامل" className="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-green-600" />
+                  <label className="text-sm font-bold text-[#8b0000]">موضوع *</label>
+                  <input type="text" defaultValue="عرض أسعار (QUOTE2025/09/0003) من مؤسسة تكامل" className="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-red-600" />
                 </div>
                 <div className="space-y-2 text-right">
-                  <label className="text-sm font-bold text-green-600">رسالة</label>
+                  <label className="text-sm font-bold text-[#8b0000]">رسالة</label>
                   <textarea 
                     rows={6}
-                    className="w-full border border-gray-300 rounded p-3 text-sm outline-none focus:border-green-600"
+                    className="w-full border border-gray-300 rounded p-3 text-sm outline-none focus:border-red-600"
                     defaultValue={`{logo}
 
 Quotation Details
@@ -271,13 +269,13 @@ Best regards,
                 <div className="flex justify-between items-center pt-4">
                   <button 
                     onClick={() => setShowBcc(!showBcc)}
-                    className="text-sm font-bold text-green-600 border border-green-600 px-4 py-2 rounded hover:bg-green-50"
+                    className="text-sm font-bold text-[#8b0000] border border-[#8b0000] px-4 py-2 rounded hover:bg-red-50"
                   >
                     {showBcc ? 'إخفاء BCC' : 'إظهار / إخفاء BCC'}
                   </button>
                   <button 
                     onClick={() => setShowEmailModal(false)}
-                    className="bg-green-500 text-white px-8 py-2 rounded-lg font-bold hover:bg-green-600 transition-colors"
+                    className="bg-[#8b0000] text-white px-8 py-2 rounded-lg font-bold hover:bg-[#a52a2a] transition-colors"
                   >
                     ارسال البريد الإلكتروني
                   </button>
@@ -287,17 +285,6 @@ Best regards,
           </div>
         )}
       </AnimatePresence>
-
-      <DeleteConfirmationModal
-        isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={() => {
-          // In a real app, delete the quote
-          setShowDeleteModal(false);
-          navigate('/quotes');
-        }}
-        itemName={language === 'ar' ? 'عرض السعر هذا' : 'this quote'}
-      />
     </div>
   );
 }

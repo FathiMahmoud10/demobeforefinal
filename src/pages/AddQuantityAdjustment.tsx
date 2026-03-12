@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Plus, Trash2, Bold, Italic, Underline, List, AlignLeft, AlignCenter, AlignRight, Link as LinkIcon, Upload, Search, ChevronDown } from 'lucide-react';
+import { FileText, Plus, Trash2, Bold, Italic, Underline, List, AlignLeft, AlignCenter, AlignRight, Link as LinkIcon, Upload, Search } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAdjustments } from '@/context/AdjustmentsContext';
 import { useProducts } from '@/context/ProductsContext';
-import MobileDataCard from '@/components/MobileDataCard';
 
 const AddQuantityAdjustment = () => {
   const { t, direction } = useLanguage();
@@ -15,7 +14,7 @@ const AddQuantityAdjustment = () => {
   const [formData, setFormData] = useState({
     date: new Date().toLocaleString('en-GB').replace(',', ''),
     refNo: '',
-    branch: 'شركة دقة الحلول',
+    branch: 'شركة تكامل البيانات ',
     note: '',
     items: [] as any[]
   });
@@ -46,7 +45,7 @@ const AddQuantityAdjustment = () => {
       setFormData({
         date: new Date().toLocaleString('en-GB').replace(',', ''),
         refNo: '',
-        branch: 'شركة دقة الحلول',
+        branch: 'شركة تكامل البيانات ',
         note: '',
         items: []
       });
@@ -188,7 +187,7 @@ const AddQuantityAdjustment = () => {
                 <button className="bg-gray-200 text-gray-800 px-4 h-10 flex items-center justify-center rounded-md text-sm font-medium hover:bg-gray-300 transition-colors whitespace-nowrap">
                     {t('download_sample_file')}
                 </button>
-                <label className="cursor-pointer bg-primary hover:bg-primary-hover text-white px-4 h-10 flex items-center justify-center rounded-md text-sm transition-colors whitespace-nowrap">
+                <label className="cursor-pointer bg-primary hover:bg-primary-700 text-white px-4 h-10 flex items-center justify-center rounded-md text-sm transition-colors whitespace-nowrap">
                     {t('browse')}
                     <input type="file" className="hidden" />
                 </label>
@@ -238,8 +237,7 @@ const AddQuantityAdjustment = () => {
         </div>
 
         <div className="overflow-x-auto">
-            {/* Desktop Table */}
-            <table className="hidden md:table w-full text-sm text-right text-black">
+            <table className="w-full text-sm text-right text-black">
                 <thead className="bg-primary text-white">
                     <tr>
                         <th className="p-2">اسم الصنف (كود الصنف)</th>
@@ -247,11 +245,10 @@ const AddQuantityAdjustment = () => {
                         <th className="p-2">نوع</th>
                         <th className="p-2">كمية</th>
                         <th className="p-2">التكلفة بدون ضريبة</th>
-                        <th className="p-2">رقم السيريال</th>
-                        <th className="p-2"><input type="checkbox" onChange={handleSelectAll} checked={selectedItems.length === formData.items.length && formData.items.length > 0} className="accent-primary" /></th>
+                        <th className="p-2"></th>
                     </tr>
                 </thead>
-                <tbody className="text-black bg-green-50/20">
+                <tbody className="text-black">
                     {formData.items.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="p-8 text-center text-gray-400 italic">
@@ -260,7 +257,7 @@ const AddQuantityAdjustment = () => {
                       </tr>
                     ) : (
                       formData.items.map(item => (
-                        <tr key={item.id} className="bg-green-50/30 border-b border-gray-100 hover:bg-green-100/50 transition-colors">
+                        <tr key={item.id} className="border-b border-gray-100">
                             <td className="p-2">{item.code} - {item.name}</td>
                             <td className="p-2 font-medium">{item.availableQty}</td>
                             <td className="p-2">
@@ -290,104 +287,15 @@ const AddQuantityAdjustment = () => {
                               />
                             </td>
                             <td className="p-2">
-                              <input 
-                                type="text" 
-                                value={item.serial}
-                                onChange={(e) => handleItemChange(item.id, 'serial', e.target.value)}
-                                className="border border-gray-300 rounded-md p-1 text-sm w-full bg-white text-black" 
-                              />
+                     
                             </td>
                             <td className="p-2">
-                                <input type="checkbox" checked={selectedItems.includes(item.id)} onChange={() => handleSelectItem(item.id)} className="accent-primary" />
                             </td>
                         </tr>
                       ))
                     )}
                 </tbody>
             </table>
-
-            {/* Mobile Cards */}
-            <div className="md:hidden space-y-4">
-              {formData.items.map(item => (
-                <MobileDataCard
-                  key={item.id}
-                  title={`${item.code} - ${item.name}`}
-                  subtitle={`${t('available_quantity')}: ${item.availableQty}`}
-                  fields={[
-                    { 
-                      label: t('type'), 
-                      value: (
-                        <select 
-                          value={item.type} 
-                          onChange={(e) => handleItemChange(item.id, 'type', e.target.value)}
-                          className="border border-gray-300 rounded-md p-1 text-sm bg-white text-black w-full"
-                        >
-                          <option>طرح</option>
-                          <option>إضافة</option>
-                        </select>
-                      ) 
-                    },
-                    { 
-                      label: t('quantity'), 
-                      value: (
-                        <input 
-                          type="text" 
-                          value={item.qty} 
-                          onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
-                          className="border border-gray-300 rounded-md p-1 text-sm w-full bg-white text-black font-bold" 
-                        />
-                      ) 
-                    },
-                    { 
-                      label: t('unit_cost'), 
-                      value: (
-                        <input 
-                          type="text" 
-                          value={item.cost} 
-                          onChange={(e) => handleItemChange(item.id, 'cost', e.target.value)}
-                          className="border border-gray-300 rounded-md p-1 text-sm w-full bg-white text-black" 
-                        />
-                      ) 
-                    },
-                    { 
-                      label: t('serial_number'), 
-                      value: (
-                        <input 
-                          type="text" 
-                          value={item.serial}
-                          onChange={(e) => handleItemChange(item.id, 'serial', e.target.value)}
-                          className="border border-gray-300 rounded-md p-1 text-sm w-full bg-white text-black" 
-                          placeholder={t('serial_number')}
-                        />
-                      ) 
-                    },
-                  ]}
-                  actions={
-                    <div className="flex justify-between items-center">
-                      <input 
-                        type="checkbox" 
-                        checked={selectedItems.includes(item.id)} 
-                        onChange={() => handleSelectItem(item.id)} 
-                        className="w-5 h-5 accent-primary" 
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => handleRemoveItem(item.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg border border-red-100 transition-colors flex items-center gap-1 text-xs font-bold"
-                      >
-                        <Trash2 size={16} />
-                        {t('delete')}
-                      </button>
-                    </div>
-                  }
-                />
-              ))}
-              {formData.items.length === 0 && (
-                <div className="p-8 text-center text-gray-400 italic bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                  {direction === 'rtl' ? 'لا توجد أصناف مضافة' : 'No items added'}
-                </div>
-              )}
-            </div>
         </div>
 
         <div className="mt-6">
@@ -415,14 +323,14 @@ const AddQuantityAdjustment = () => {
           <button 
             onClick={handleDeleteSelected}
             disabled={selectedItems.length === 0}
-            className="bg-red-600 text-white px-6 py-2 rounded-md font-medium hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="bg-primary text-white px-6 py-2 rounded-md font-medium hover:bg-primary transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {t('delete_selected_items')}
           </button>
           <div className="flex justify-end gap-2">
             <button 
               onClick={handleComplete}
-              className="bg-primary text-white px-6 py-2 rounded-md font-medium hover:bg-primary-hover transition-colors"
+              className="bg-primary text-white px-6 py-2 rounded-md font-medium hover:bg-primary transition-colors"
             >
               {t('complete_process')}
             </button>

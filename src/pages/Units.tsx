@@ -1,37 +1,56 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText, ChevronDown, Edit, Trash2, PlusCircle, Search } from 'lucide-react';
-import Pagination from '@/components/Pagination';
+import { ChevronDown, Edit, Trash2, PlusCircle, Save, X, Loader2 } from 'lucide-react';
 import AddUnitModal from '@/components/AddUnitModal';
-import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 import { useLanguage } from '../context/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import MobileDataCard from '@/components/MobileDataCard';
+
+// تعريف نوع البيانات للوحدة
+interface Unit {
+  id: number;
+  code: string;
+  name: string;
+  description?: string;
+}
 
 const Units = () => {
-  const { t, direction, language } = useLanguage();
+  const { t, direction } = useLanguage();
+
   const [openActionId, setOpenActionId] = useState<number | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number, left: number } | null>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
 
-  const [units, setUnits] = useState([
-    { id: 1, code: 'U-001', name: 'قطعة' },
-    { id: 2, code: 'U-002', name: 'كيلو' },
-  ]);
+  const [units, setUnits] = useState<Unit[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [unitToDelete, setUnitToDelete] = useState<number | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
+  // حالات التعديل
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
-  const filteredUnits = units.filter(unit =>
-    unit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    unit.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // تحميل الوحدات من API
+  const loadUnits = async () => {
+    try {
+      const res = await fetch("http://takamulerp.runasp.net/UnitOfMeasure");
+      const data = await res.json();
 
-  const paginatedUnits = filteredUnits.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+      const formattedUnits = data.items.map((item: any, index: number) => ({
+        id: item.id,
+        code: `${index + 1}`,
+        name: item.name,
+        description: item.description || ''
+      }));
+
+      setUnits(formattedUnits);
+
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    loadUnits();
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -40,55 +59,99 @@ const Units = () => {
         setMenuPosition(null);
       }
     };
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const toggleActionMenu = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
+
     if (openActionId === id) {
       setOpenActionId(null);
       setMenuPosition(null);
     } else {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       setOpenActionId(id);
-      
+
       const menuWidth = 160;
-      const left = direction === 'rtl' 
-        ? rect.right - menuWidth 
+      const left = direction === 'rtl'
+        ? rect.right - menuWidth
         : rect.left;
-        
-      setMenuPosition({ 
-        top: rect.bottom + 5, 
+
+      setMenuPosition({
+        top: rect.bottom + 5,
         left: Math.max(10, left)
       });
     }
   };
 
-  const handleAddUnit = (unitName: string) => {
-    const newUnit = {
-      id: units.length > 0 ? Math.max(...units.map(u => u.id)) + 1 : 1,
-      code: `U-00${units.length + 1}`,
-      name: unitName,
-    };
-    setUnits([...units, newUnit]);
-  };
-
   const handleDelete = (id: number) => {
-    setUnitToDelete(id);
+    if (window.confirm(t('confirm_delete_unit') || 'Are you sure you want to delete this unit?')) {
+      setUnits(units.filter(u => u.id !== id));
+      setOpenActionId(null);
+      // ملاحظة: يفضل هنا استدعاء API الحذف الفعلي
+    }
   };
 
-  const confirmDelete = () => {
-    if (unitToDelete !== null) {
-      setUnits(units.filter(u => u.id !== unitToDelete));
-      setUnitToDelete(null);
-      setOpenActionId(null);
+  // فتح نافذة التعديل
+  const handleEditClick = (unit: Unit) => {
+    setEditingUnit(unit);
+    setIsEditModalOpen(true);
+    setOpenActionId(null); // إغلاق القائمة العائمة
+    setEditError(null);
+  };
+
+  // حفظ التعديلات
+  const handleSaveEdit = async () => {
+    if (!editingUnit) return;
+
+    if (!editingUnit.name.trim()) {
+      setEditError(t('unit_name_required') || 'Unit Name is required');
+      return;
+    }
+
+    setIsSaving(true);
+    setEditError(null);
+
+    try {
+      const response = await fetch(
+        `http://takamulerp.runasp.net/UnitOfMeasure?id=${editingUnit.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: editingUnit.name,
+            description: editingUnit.description || ''
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to update unit');
+      }
+
+      // تحديث القائمة محلياً
+      setUnits(prev => prev.map(u => 
+        u.id === editingUnit.id ? { ...editingUnit } : u
+      ));
+
+      setIsEditModalOpen(false);
+      // يمكن إعادة تحميل البيانات من السيرفر للتأكد من التحديث
+      // await loadUnits(); 
+
+    } catch (error) {
+      console.error(error);
+      setEditError(t('save_error') || 'Failed to save changes');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
     <div className="space-y-4">
-
       {/* Breadcrumb */}
       <div className="text-sm text-gray-500 flex items-center gap-1">
         <span>{t('home')}</span>
@@ -98,72 +161,46 @@ const Units = () => {
         <span className="text-gray-800 font-medium">{t('units')}</span>
       </div>
 
-      {/* Page Header */}
+      {/* Header */}
       <div className="bg-white p-4 rounded-t-xl border-b border-gray-200 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-              {t('units')}
-          </h1>
-          <button 
-            onClick={() => setIsAddModalOpen(true)}
-            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-hover transition-colors flex items-center gap-2 text-sm font-medium"
-          >
-              <PlusCircle size={18} />
-              {t('add_new_unit')}
-          </button>
+        <h1 className="text-xl font-bold text-gray-800">
+          {t('units')}
+        </h1>
+        <button
+          onClick={() => setIsAddModalOpen(true)}
+          className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm hover:bg-opacity-90 transition"
+        >
+          <PlusCircle size={18} />
+          {t('add_new_unit')}
+        </button>
       </div>
 
-      {/* Table Container */}
+      {/* Table */}
       <div className="bg-white rounded-b-xl shadow-sm border border-gray-200 p-4 min-h-[300px]">
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span>{t('show')}</span>
-                <select 
-                    value={itemsPerPage}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="border border-gray-300 rounded px-2 py-1 outline-none focus:border-primary text-black"
-                >
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                </select>
-            </div>
-            
-            <div className="relative w-full sm:w-64">
-                <input 
-                    type="text" 
-                    placeholder={t('search_placeholder')}
-                    className={`w-full border border-gray-300 rounded px-3 py-1.5 text-sm outline-none focus:border-primary text-black ${direction === 'rtl' ? 'pr-8' : 'pl-8'}`}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <Search className={`absolute top-1/2 -translate-y-1/2 text-gray-400 ${direction === 'rtl' ? 'right-2' : 'left-2'}`} size={16} />
-            </div>
-        </div>
-        {/* Table - Desktop */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="overflow-x-auto">
           <table className="w-full text-sm text-right text-gray-500">
             <thead className="text-xs text-white uppercase bg-primary">
               <tr>
-                <th scope="col" className="px-6 py-3 border border-primary-hover">{t('unit_code')}</th>
-                <th scope="col" className="px-6 py-3 border border-primary-hover">{t('unit_name')}</th>
-                <th scope="col" className="px-6 py-3 border border-primary-hover text-center">{t('actions')}</th>
+                <th className="px-6 py-3">{t('unit_code')}</th>
+                <th className="px-6 py-3">{t('unit_name')}</th>
+                <th className="px-6 py-3 text-center">{t('actions')}</th>
               </tr>
             </thead>
-            <tbody className="bg-green-50/20">
-              {paginatedUnits.map((unit) => (
-                <tr key={unit.id} className="bg-green-50/30 border-b hover:bg-green-100/50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap border border-gray-100">{unit.code}</td>
-                  <td className="px-6 py-4 border border-gray-100">{unit.name}</td>
-                  <td className="px-6 py-4 border border-gray-100 text-center">
-                    <button 
+            <tbody>
+              {units.map((unit) => (
+                <tr key={unit.id} className="border-b hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-medium text-gray-900">
+                    {unit.code}
+                  </td>
+                  <td className="px-6 py-4">
+                    {unit.name}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button
                       onClick={(e) => toggleActionMenu(unit.id, e)}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary-hover transition-colors"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary text-white rounded-md text-xs hover:bg-opacity-90 transition"
                     >
-                      <span>{t('actions')}</span>
+                      {t('actions')}
                       <ChevronDown size={14} />
                     </button>
                   </td>
@@ -173,94 +210,135 @@ const Units = () => {
           </table>
         </div>
 
-        {/* Mobile View */}
-        <div className="md:hidden space-y-4">
-          {paginatedUnits.map((unit) => (
-            <MobileDataCard
-              key={unit.id}
-              title={unit.name}
-              subtitle={unit.code}
-              fields={[]}
-              actions={
-                <div className="flex justify-end gap-2">
-                  <button 
-                    onClick={() => handleDelete(unit.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg border border-red-100 transition-colors"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                  <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg border border-blue-100 transition-colors">
-                    <Edit size={18} />
-                  </button>
-                </div>
-              }
-            />
-          ))}
-          {paginatedUnits.length === 0 && (
-            <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-              {t('no_results_found')}
-            </div>
-          )}
-        </div>
-
-        <Pagination
-          currentPage={currentPage}
-          totalItems={filteredUnits.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
+        {/* Add Modal */}
+        <AddUnitModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          refreshUnits={loadUnits}
         />
 
-        {/* Floating Action Menu */}
-        <AddUnitModal 
-          isOpen={isAddModalOpen} 
-          onClose={() => setIsAddModalOpen(false)} 
-          onAddUnit={handleAddUnit} 
-        />
-
-        <DeleteConfirmationModal
-          isOpen={unitToDelete !== null}
-          onClose={() => setUnitToDelete(null)}
-          onConfirm={confirmDelete}
-          itemName={units.find(u => u.id === unitToDelete)?.name}
-        />
-
-        {/* Floating Action Menu */}
+        {/* Floating Menu */}
         <AnimatePresence>
           {openActionId !== null && menuPosition && (
-            <motion.div 
+            <motion.div
               ref={actionMenuRef}
-              initial={{ opacity: 0, scale: 0.95, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -10 }}
-              className={`fixed bg-white rounded-md shadow-lg border border-gray-200 z-50 overflow-hidden w-40 ${direction === 'rtl' ? 'text-right' : 'text-left'}`}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="fixed bg-white rounded-md shadow-lg border w-40 z-50"
               style={{ top: menuPosition.top, left: menuPosition.left }}
-              onClick={(e) => e.stopPropagation()}
             >
-              <button 
-                onMouseDown={(e) => e.stopPropagation()}
-                className={`w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
+              <button
+                onClick={() => handleEditClick(units.find(u => u.id === openActionId)!)}
+                className="w-full px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
               >
-                {direction === 'rtl' ? (
-                  <><span>{t('edit')}</span><Edit size={14} className="text-gray-500" /></>
-                ) : (
-                  <><Edit size={14} className="text-gray-500" /><span>{t('edit')}</span></>
-                )}
+                <Edit size={14} />
+                {t('edit')}
               </button>
-              <button 
-                onMouseDown={(e) => e.stopPropagation()}
+              <button
                 onClick={() => handleDelete(openActionId)}
-                className={`w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
+                className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
               >
-                {direction === 'rtl' ? (
-                  <><span>{t('delete')}</span><Trash2 size={14} className="text-red-500" /></>
-                ) : (
-                  <><Trash2 size={14} className="text-red-500" /><span>{t('delete')}</span></>
-                )}
+                <Trash2 size={14} />
+                {t('delete')}
               </button>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Edit Unit Modal */}
+      <AnimatePresence>
+        {isEditModalOpen && editingUnit && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+            onClick={() => setIsEditModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center p-4 border-b">
+                <h3 className="text-lg font-bold text-gray-800">{t('edit_unit') || 'تعديل الوحدة'}</h3>
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {editError && (
+                  <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm border border-red-200">
+                    {editError}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {t('unit_name') || 'اسم الوحدة'}
+                  </label>
+                  <input
+                    type="text"
+                    value={editingUnit.name}
+                    onChange={(e) => setEditingUnit({ ...editingUnit, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition"
+                    dir={direction}
+                    placeholder={t('enter_unit_name') || 'أدخل اسم الوحدة'}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {t('unit_description') || 'الوصف'}
+                  </label>
+                  <textarea
+                    value={editingUnit.description || ''}
+                    onChange={(e) => setEditingUnit({ ...editingUnit, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition resize-none"
+                    rows={3}
+                    dir={direction}
+                    placeholder={t('enter_description') || 'أدخل الوصف'}
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-gray-50 flex justify-end gap-3 border-t">
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-lg transition"
+                >
+                  {t('cancel') || 'إلغاء'}
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={isSaving}
+                  className="px-4 py-2 text-sm bg-primary text-white rounded-lg hover:bg-opacity-90 transition flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      {t('saving') || 'جاري الحفظ...'}
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} />
+                      {t('save') || 'حفظ'}
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

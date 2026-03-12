@@ -116,7 +116,7 @@ const ImportQuantityAdjustment = () => {
 
         <div className="bg-[#FFF8F8] border border-[#FFDADA] rounded-md p-6 mb-8 text-center">
             <div className="flex flex-col items-center gap-4">
-                <button className="bg-[#2ecc71] text-white px-4 py-2 rounded-md text-sm hover:bg-[#27ae60] transition-colors flex items-center gap-2">
+                <button className="bg-[#A01B1B] text-white px-4 py-2 rounded-md text-sm hover:bg-[#801515] transition-colors flex items-center gap-2">
                     <Download size={16} />
                     تحميل عينة الملف
                 </button>
@@ -131,7 +131,7 @@ const ImportQuantityAdjustment = () => {
         <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 dark:text-black mb-1">تحميل الملف *</label>
             <div className="flex items-center gap-2">
-                <label className="cursor-pointer bg-[#2ecc71] hover:bg-[#27ae60] text-white px-4 h-10 flex items-center justify-center rounded-md text-sm transition-colors whitespace-nowrap gap-2">
+                <label className="cursor-pointer bg-[#A01B1B] hover:bg-[#801515] text-white px-4 h-10 flex items-center justify-center rounded-md text-sm transition-colors whitespace-nowrap gap-2">
                     <FolderOpen size={16} />
                     استعراض ...
                     <input 
@@ -176,7 +176,7 @@ const ImportQuantityAdjustment = () => {
         <div className="flex justify-end gap-2 mt-6">
             <button 
               onClick={handleComplete}
-              className="bg-[#2ecc71] text-white px-6 py-2 rounded-md font-medium hover:bg-[#27ae60] transition-colors"
+              className="bg-[#A01B1B] text-white px-6 py-2 rounded-md font-medium hover:bg-[#801515] transition-colors"
             >
               اتمام العملية
             </button>

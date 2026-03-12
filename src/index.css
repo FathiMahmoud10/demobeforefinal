@@ -104,10 +104,15 @@ input, select, textarea {
   color: #000000 !important;
 }
 
-/* Ensure inputs on light backgrounds have black text */
-.bg-white input, .bg-white select, .bg-white textarea,
-.bg-gray-50 input, .bg-gray-50 select, .bg-gray-50 textarea,
-.bg-gray-100 input, .bg-gray-100 select, .bg-gray-100 textarea {
+/* Ensure components on light backgrounds have black text (including selects) */
+.bg-white, .bg-white input, .bg-white select, .bg-white textarea,
+.bg-gray-50, .bg-gray-50 input, .bg-gray-50 select, .bg-gray-50 textarea,
+.bg-gray-100, .bg-gray-100 input, .bg-gray-100 select, .bg-gray-100 textarea {
+  color: #000000 !important;
+}
+
+/* Force select text color to be visible in all themes */
+select {
   color: #000000 !important;
 }
 

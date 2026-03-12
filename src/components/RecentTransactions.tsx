@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
-import MobileDataCard from '@/components/MobileDataCard';
 
 export default function RecentTransactions() {
   const [activeTab, setActiveTab] = useState('sales');
@@ -25,7 +24,7 @@ export default function RecentTransactions() {
   ];
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden" dir={direction}>
+    <div className="bg-[var(--bg-card)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
       <div className="border-b border-[var(--border)]">
         <div className="flex overflow-x-auto">
           {tabs.map((tab) => (
@@ -50,77 +49,42 @@ export default function RecentTransactions() {
 
       <div className="overflow-x-auto">
         {activeTab === 'sales' && (
-          <>
-            {/* Desktop Table */}
-            <table className={`hidden md:table w-full min-w-[1200px] text-sm ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
-              <thead className="bg-[var(--bg-main)]/50 text-[var(--text-muted)] font-medium">
-                <tr>
-                  <th className="px-6 py-3 whitespace-nowrap">{t('id')}</th>
-                  <th className="px-6 py-3 whitespace-nowrap">{t('date')}</th>
-                  <th className="px-6 py-3 whitespace-nowrap">{t('invoice_no')}</th>
-                  <th className="px-6 py-3 whitespace-nowrap">{t('ref_no')}</th>
-                  <th className="px-6 py-3 whitespace-nowrap">{t('customer')}</th>
-                  <th className="px-6 py-3 text-center whitespace-nowrap">{t('status')}</th>
-                  <th className="px-6 py-3 whitespace-nowrap">{t('total')}</th>
-                  <th className="px-6 py-3 text-center whitespace-nowrap">{t('payment_status')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {salesData.map((item) => (
-                  <tr key={item.id} className="hover:bg-[var(--bg-main)]/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-[var(--text-main)]">{item.id}</td>
-                    <td className="px-6 py-4 text-[var(--text-muted)] whitespace-nowrap" dir="ltr">{item.date}</td>
-                    <td className="px-6 py-4 font-medium whitespace-nowrap text-[var(--text-main)]">{item.invoice}</td>
-                    <td className="px-6 py-4 text-[var(--text-muted)] whitespace-nowrap">{item.ref}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-[var(--text-main)]">{item.customer}</td>
-                    <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 font-bold whitespace-nowrap text-[var(--text-main)]">{item.total}</td>
-                    <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                        {item.payment}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Mobile View */}
-            <div className="md:hidden space-y-4 p-4">
+          <table className={`w-full min-w-[1200px] text-sm ${direction === 'rtl' ? 'text-right' : 'text-left'}`}>
+            <thead className="bg-[var(--bg-main)]/50 text-[var(--text-muted)] font-medium">
+              <tr>
+                <th className="px-6 py-3 whitespace-nowrap">{t('id')}</th>
+                <th className="px-6 py-3 whitespace-nowrap">{t('date')}</th>
+                <th className="px-6 py-3 whitespace-nowrap">{t('invoice_no')}</th>
+                <th className="px-6 py-3 whitespace-nowrap">{t('ref_no')}</th>
+                <th className="px-6 py-3 whitespace-nowrap">{t('customer')}</th>
+                <th className="px-6 py-3 text-center whitespace-nowrap">{t('status')}</th>
+                <th className="px-6 py-3 whitespace-nowrap">{t('total')}</th>
+                <th className="px-6 py-3 text-center whitespace-nowrap">{t('payment_status')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
               {salesData.map((item) => (
-                <MobileDataCard
-                  key={item.id}
-                  title={item.ref}
-                  subtitle={item.date}
-                  fields={[
-                    { label: t('invoice_no'), value: item.invoice },
-                    { label: t('customer'), value: item.customer },
-                    { label: t('total'), value: item.total, isBold: true },
-                    { 
-                      label: t('status'), 
-                      value: (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 border border-green-200">
-                          {item.status}
-                        </span>
-                      ) 
-                    },
-                    { 
-                      label: t('payment_status'), 
-                      value: (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 border border-green-200">
-                          {item.payment}
-                        </span>
-                      ) 
-                    },
-                  ]}
-                />
+                <tr key={item.id} className="hover:bg-[var(--bg-main)]/30 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-[var(--text-main)]">{item.id}</td>
+                  <td className="px-6 py-4 text-[var(--text-muted)] whitespace-nowrap" dir="ltr">{item.date}</td>
+                  <td className="px-6 py-4 font-medium whitespace-nowrap text-[var(--text-main)]">{item.invoice}</td>
+                  <td className="px-6 py-4 text-[var(--text-muted)] whitespace-nowrap">{item.ref}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-[var(--text-main)]">{item.customer}</td>
+                  <td className="px-6 py-4 text-center whitespace-nowrap">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                      {item.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 font-bold whitespace-nowrap text-[var(--text-main)]">{item.total}</td>
+                  <td className="px-6 py-4 text-center whitespace-nowrap">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                      {item.payment}
+                    </span>
+                  </td>
+                </tr>
               ))}
-            </div>
-          </>
+            </tbody>
+          </table>
         )}
         
         {activeTab !== 'sales' && (

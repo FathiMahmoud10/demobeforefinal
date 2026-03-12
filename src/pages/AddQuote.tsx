@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   FileText, 
   PlusCircle,
@@ -14,24 +14,16 @@ import {
   UserPlus
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
-import { useProducts, Product } from '@/context/ProductsContext';
-import { useQuotes } from '@/context/QuotesContext';
-import { useSettings } from '@/context/SettingsContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import MobileDataCard from '@/components/MobileDataCard';
 
 export default function AddQuote() {
   const { t, direction } = useLanguage();
-  const { products: allProducts } = useProducts();
-  const { addQuote } = useQuotes();
-  const { systemSettings } = useSettings();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
   
   const [date, setDate] = useState('14:17:00 23/02/2026');
-  const [refNo, setRefNo] = useState(`${systemSettings.prefixes.quote}${Math.floor(Math.random() * 1000000).toString()}`);
+  const [refNo, setRefNo] = useState('');
   const [cashier, setCashier] = useState('شركة اختبار');
   const [discount, setDiscount] = useState('');
   const [shipping, setShipping] = useState('');
@@ -42,89 +34,13 @@ export default function AddQuote() {
   const [isCustomerDisabled, setIsCustomerDisabled] = useState(false);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showResults, setShowResults] = useState(false);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setShowResults(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const filteredProducts = searchQuery.trim() === '' 
-    ? [] 
-    : allProducts.filter(p => 
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        p.code.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-
-  const handleSelectProduct = (product: Product) => {
-    const existingProductIndex = products.findIndex(p => p.id === product.id);
-    
-    if (existingProductIndex !== -1) {
-      const updatedProducts = [...products];
-      updatedProducts[existingProductIndex].quantity += 1;
-      updatedProducts[existingProductIndex].total = (updatedProducts[existingProductIndex].quantity * updatedProducts[existingProductIndex].priceWithVat).toFixed(2);
-      setProducts(updatedProducts);
-    } else {
-      const price = parseFloat(product.price);
-      const priceNoVat = (price / 1.15).toFixed(2);
-      const newItem = {
-        id: product.id,
-        name: product.name,
-        code: product.code,
-        priceNoVat: priceNoVat,
-        priceWithVat: price.toFixed(2),
-        quantity: 1,
-        total: price.toFixed(2)
-      };
-      setProducts([...products, newItem]);
-    }
-    setSearchQuery('');
-    setShowResults(false);
-  };
 
   const handleDeleteProduct = (index: number) => {
     setProducts(products.filter((_, i) => i !== index));
   };
 
-  const handleUpdateQuantity = (index: number, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    const updatedProducts = [...products];
-    updatedProducts[index].quantity = newQuantity;
-    updatedProducts[index].total = (newQuantity * updatedProducts[index].priceWithVat).toFixed(2);
-    setProducts(updatedProducts);
-  };
-
   const handleBrowseClick = () => {
     fileInputRef.current?.click();
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const total = products.reduce((sum, p) => sum + parseFloat(p.total), 0);
-    
-    const newQuote = {
-      date,
-      refNo,
-      cashier,
-      customer: customer || t('general_person'),
-      total,
-      status: status as 'pending' | 'completed',
-      products,
-      note,
-      discount,
-      shipping,
-      branch,
-    };
-
-    addQuote(newQuote);
-    navigate('/quotes');
   };
 
   return (
@@ -159,7 +75,7 @@ export default function AddQuote() {
               {t('add_product_desc')}
           </p>
 
-          <form className="space-y-8" onSubmit={handleSubmit}>
+          <form className="space-y-8">
               {/* Top Row */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="space-y-2 text-right">
@@ -185,7 +101,7 @@ export default function AddQuote() {
                       <select 
                         value={cashier}
                         onChange={(e) => setCashier(e.target.value)}
-                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-green-600 bg-white text-right"
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-red-600 bg-white text-right"
                       >
                           <option value="شركة اختبار">شركة اختبار</option>
                       </select>
@@ -282,21 +198,21 @@ export default function AddQuote() {
                               <button 
                                 type="button" 
                                 onClick={() => setShowAddCustomerModal(true)}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded border border-gray-200"
+                                className="p-2 text-red-600 hover:bg-red-50 rounded border border-gray-200"
                               >
                                 <Plus size={18} />
                               </button>
                               <button 
                                 type="button" 
                                 onClick={() => setIsCustomerDisabled(true)}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded border border-gray-200"
+                                className="p-2 text-red-600 hover:bg-red-50 rounded border border-gray-200"
                               >
                                 <Eye size={18} />
                               </button>
                               <button 
                                 type="button" 
                                 onClick={() => setIsCustomerDisabled(false)}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded border border-gray-200"
+                                className="p-2 text-red-600 hover:bg-red-50 rounded border border-gray-200"
                               >
                                 <Edit2 size={18} />
                               </button>
@@ -306,7 +222,7 @@ export default function AddQuote() {
               </div>
 
               {/* Product Search */}
-              <div className="relative" ref={searchRef}>
+              <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 gap-2">
                       <Barcode size={24} className="text-gray-400" />
                   </div>
@@ -322,49 +238,14 @@ export default function AddQuote() {
                   <input 
                     type="text" 
                     placeholder={t('please_add_items')}
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setShowResults(true);
-                    }}
-                    onFocus={() => setShowResults(true)}
                     className="w-full border-2 border-blue-400 rounded-lg px-12 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-100 text-right"
                   />
-
-                  {/* Search Results Dropdown */}
-                  <AnimatePresence>
-                    {showResults && filteredProducts.length > 0 && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto"
-                      >
-                        {filteredProducts.map((product) => (
-                          <button
-                            key={product.id}
-                            type="button"
-                            onClick={() => handleSelectProduct(product)}
-                            className="w-full text-right px-4 py-3 hover:bg-gray-50 flex items-center justify-between border-b border-gray-100 last:border-0 transition-colors"
-                          >
-                            <span className="text-primary font-bold">{product.price} ر.س</span>
-                            <div className="text-right">
-                              <p className="text-sm font-bold text-gray-800">{product.name}</p>
-                              <p className="text-xs text-gray-500">{product.code}</p>
-                            </div>
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
               </div>
 
               {/* Products Table */}
               <div className="space-y-2">
                   <label className="text-sm font-bold text-primary text-right block">{t('products')} *</label>
-                  
-                  {/* Desktop Table */}
-                  <div className="hidden md:block overflow-x-auto">
+                  <div className="overflow-x-auto">
                       <table className="w-full text-sm text-right border-collapse">
                           <thead>
                               <tr className="bg-primary text-white">
@@ -381,12 +262,12 @@ export default function AddQuote() {
                           <tbody>
                               {products.length > 0 ? (
                                 products.map((product, index) => (
-                                  <tr key={index} className="bg-green-50/30 hover:bg-green-100/50 transition-colors">
+                                  <tr key={index}>
                                     <td className="p-3 border border-gray-200 text-center">
                                       <button 
                                         type="button" 
                                         onClick={() => handleDeleteProduct(index)}
-                                        className="text-green-600 hover:text-green-800"
+                                        className="text-red-600 hover:text-red-800"
                                       >
                                         <Trash2 size={16} />
                                       </button>
@@ -394,15 +275,7 @@ export default function AddQuote() {
                                     <td className="p-3 border border-gray-200">{product.name} ({product.code})</td>
                                     <td className="p-3 border border-gray-200">{product.priceNoVat}</td>
                                     <td className="p-3 border border-gray-200">{product.priceWithVat}</td>
-                                    <td className="p-3 border border-gray-200">
-                                      <input 
-                                        type="number" 
-                                        min="1"
-                                        value={product.quantity}
-                                        onChange={(e) => handleUpdateQuantity(index, parseInt(e.target.value) || 1)}
-                                        className="w-16 border border-gray-300 rounded px-2 py-1 text-center outline-none focus:border-primary"
-                                      />
-                                    </td>
+                                    <td className="p-3 border border-gray-200">{product.quantity}</td>
                                     <td className="p-3 border border-gray-200">{product.total}</td>
                                   </tr>
                                 ))
@@ -415,66 +288,6 @@ export default function AddQuote() {
                               )}
                           </tbody>
                       </table>
-                  </div>
-
-                  {/* Mobile View */}
-                  <div className="md:hidden space-y-4">
-                    {products.map((product, index) => (
-                      <MobileDataCard
-                        key={index}
-                        title={product.name}
-                        subtitle={product.code}
-                        fields={[
-                          { label: t('unit_price_with_vat'), value: product.priceWithVat },
-                          { 
-                            label: t('quantity'), 
-                            value: (
-                              <div className="flex items-center gap-2">
-                                <button 
-                                  type="button"
-                                  onClick={() => handleUpdateQuantity(index, product.quantity + 1)}
-                                  className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg border border-gray-200 text-primary font-bold"
-                                >
-                                  +
-                                </button>
-                                <input 
-                                  type="number" 
-                                  min="1"
-                                  value={product.quantity}
-                                  onChange={(e) => handleUpdateQuantity(index, parseInt(e.target.value) || 1)}
-                                  className="w-12 text-center border-b border-gray-300 outline-none focus:border-primary font-bold"
-                                />
-                                <button 
-                                  type="button"
-                                  onClick={() => handleUpdateQuantity(index, Math.max(1, product.quantity - 1))}
-                                  className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg border border-gray-200 text-primary font-bold"
-                                >
-                                  -
-                                </button>
-                              </div>
-                            )
-                          },
-                          { label: t('product_total'), value: product.total, isBold: true },
-                        ]}
-                        actions={
-                          <div className="flex justify-end">
-                            <button 
-                              type="button" 
-                              onClick={() => handleDeleteProduct(index)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg border border-red-100 transition-colors flex items-center gap-1 text-xs font-bold"
-                            >
-                              <Trash2 size={16} />
-                              {t('delete')}
-                            </button>
-                          </div>
-                        }
-                      />
-                    ))}
-                    {products.length === 0 && (
-                      <div className="p-8 text-center text-gray-400 italic bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                        {t('no_products_added')}
-                      </div>
-                    )}
                   </div>
               </div>
 
@@ -502,14 +315,14 @@ export default function AddQuote() {
                   <button 
                     type="button"
                     onClick={() => navigate('/quotes')}
-                    className="bg-green-500 text-white px-8 py-2 rounded-lg font-bold hover:bg-green-600 transition-colors flex items-center gap-2"
+                    className="bg-red-500 text-white px-8 py-2 rounded-lg font-bold hover:bg-red-600 transition-colors flex items-center gap-2"
                   >
                       <RefreshCcw size={18} />
                       {t('reset')}
                   </button>
                   <button 
                     type="submit"
-                    className="bg-green-800 text-white px-8 py-2 rounded-lg font-bold hover:bg-green-900 transition-colors"
+                    className="bg-red-800 text-white px-8 py-2 rounded-lg font-bold hover:bg-red-900 transition-colors"
                   >
                       {t('complete_process')}
                   </button>

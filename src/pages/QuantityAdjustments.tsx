@@ -1,27 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText, Edit, Trash2, Printer, ChevronDown, Plus, FileSpreadsheet, Download, Menu, Search } from 'lucide-react';
-import Pagination from '../components/Pagination';
-import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
+import { FileText, Edit, Trash2, Printer, ChevronDown, Plus, FileSpreadsheet, Download, Menu } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdjustments } from '../context/AdjustmentsContext';
-import MobileDataCard from '@/components/MobileDataCard';
 
 const QuantityAdjustments = () => {
-  const { t, direction, language } = useLanguage();
+  const { t, direction } = useLanguage();
   const navigate = useNavigate();
   const { adjustments, deleteAdjustment } = useAdjustments();
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedAdjustment, setSelectedAdjustment] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [adjustmentToDelete, setAdjustmentToDelete] = useState<number | null>(null);
-  const [isBulkDelete, setIsBulkDelete] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -45,36 +37,14 @@ const QuantityAdjustments = () => {
 
   const handleDelete = (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
-    setAdjustmentToDelete(id);
-    setIsBulkDelete(false);
-  };
-
-  const confirmDelete = () => {
-    if (isBulkDelete) {
-      selectedIds.forEach(id => deleteAdjustment(id));
-      setSelectedIds([]);
-    } else if (adjustmentToDelete !== null) {
-      deleteAdjustment(adjustmentToDelete);
+    if (window.confirm(direction === 'rtl' ? 'هل أنت متأكد من حذف هذا التعديل؟' : 'Are you sure you want to delete this adjustment?')) {
+      deleteAdjustment(id);
     }
-    setAdjustmentToDelete(null);
-    setIsBulkDelete(false);
-    setShowActionsMenu(false);
   };
-
-  const filteredAdjustments = adjustments.filter(adj =>
-    adj.branch.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    adj.entry.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    adj.note.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const paginatedAdjustments = filteredAdjustments.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedIds(filteredAdjustments.map(a => a.id));
+      setSelectedIds(adjustments.map(a => a.id));
     } else {
       setSelectedIds([]);
     }
@@ -94,8 +64,11 @@ const QuantityAdjustments = () => {
       alert(direction === 'rtl' ? 'يرجى اختيار عناصر أولاً' : 'Please select items first');
       return;
     }
-    setIsBulkDelete(true);
-    setAdjustmentToDelete(selectedIds[0]); // Just to trigger the modal
+    if (window.confirm(direction === 'rtl' ? `هل أنت متأكد من حذف ${selectedIds.length} عنصر؟` : `Are you sure you want to delete ${selectedIds.length} items?`)) {
+      selectedIds.forEach(id => deleteAdjustment(id));
+      setSelectedIds([]);
+      setShowActionsMenu(false);
+    }
   };
 
   return (
@@ -166,37 +139,7 @@ const QuantityAdjustments = () => {
       </div>
 
       <div className="bg-white rounded-b-xl shadow-sm border border-gray-200 p-4 text-black">
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span>{t('show')}</span>
-                <select 
-                    value={itemsPerPage}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="border border-gray-300 rounded px-2 py-1 outline-none focus:border-primary text-black"
-                >
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                </select>
-            </div>
-            
-            <div className="relative w-full sm:w-64">
-                <input 
-                    type="text" 
-                    placeholder={t('search_placeholder')}
-                    className={`w-full border border-gray-300 rounded px-3 py-1.5 text-sm outline-none focus:border-primary text-black ${direction === 'rtl' ? 'pr-8' : 'pl-8'}`}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <Search className={`absolute top-1/2 -translate-y-1/2 text-gray-400 ${direction === 'rtl' ? 'right-2' : 'left-2'}`} size={16} />
-            </div>
-        </div>
-        {/* Table - Desktop */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="overflow-x-auto">
           <table className="w-full text-sm text-right border-collapse">
             <thead>
               <tr className="bg-primary text-white">
@@ -204,7 +147,7 @@ const QuantityAdjustments = () => {
                   <input 
                     type="checkbox" 
                     onChange={handleSelectAll}
-                    checked={selectedIds.length === filteredAdjustments.length && filteredAdjustments.length > 0}
+                    checked={selectedIds.length === adjustments.length && adjustments.length > 0}
                     className="rounded border-gray-300 form-checkbox accent-primary-hover"
                   />
                 </th>
@@ -216,9 +159,9 @@ const QuantityAdjustments = () => {
                 <th className="p-3 border border-primary/20 whitespace-nowrap text-center">{t('actions')}</th>
               </tr>
             </thead>
-            <tbody className="bg-green-50/20">
-              {paginatedAdjustments.map((adj) => (
-                <tr key={`desktop-${adj.id}`} className="bg-green-50/30 hover:bg-green-100/50 transition-colors border-b border-gray-200 cursor-pointer" onClick={() => handleRowClick(adj)}>
+            <tbody>
+              {adjustments.map((adj) => (
+                <tr key={adj.id} className="hover:bg-gray-50 transition-colors border-b border-gray-200" onClick={() => handleRowClick(adj)}>
                   <td className="p-3 text-center border-x border-gray-200" onClick={(e) => e.stopPropagation()}>
                     <input 
                       type="checkbox" 
@@ -243,69 +186,9 @@ const QuantityAdjustments = () => {
             </tbody>
           </table>
         </div>
-
-        {/* Mobile View */}
-        <div className="md:hidden space-y-4">
-          {paginatedAdjustments.map((adj) => (
-            <MobileDataCard
-              key={`mobile-${adj.id}`}
-              title={adj.branch}
-              subtitle={adj.date}
-              fields={[
-                { label: t('data_entry'), value: adj.entry },
-                { label: t('note'), value: adj.note },
-              ]}
-              actions={
-                <div className="flex justify-end gap-2">
-                  <button 
-                    onClick={() => handleRowClick(adj)}
-                    className="p-2 text-primary hover:bg-primary/5 rounded-lg border border-primary/10 transition-colors flex items-center gap-1 text-xs font-bold"
-                  >
-                    <FileText size={16} />
-                    {t('details')}
-                  </button>
-                  <button 
-                    onClick={(e) => handleEdit(e, adj.id)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg border border-blue-100 transition-colors flex items-center gap-1 text-xs font-bold"
-                  >
-                    <Edit size={16} />
-                    {t('edit')}
-                  </button>
-                  <button 
-                    onClick={(e) => handleDelete(e, adj.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg border border-red-100 transition-colors flex items-center gap-1 text-xs font-bold"
-                  >
-                    <Trash2 size={16} />
-                    {t('delete')}
-                  </button>
-                </div>
-              }
-            />
-          ))}
-        </div>
-        <Pagination 
-          currentPage={currentPage}
-          totalItems={filteredAdjustments.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-        />
       </div>
 
       <AnimatePresence>
-        <DeleteConfirmationModal
-          isOpen={adjustmentToDelete !== null}
-          onClose={() => {
-            setAdjustmentToDelete(null);
-            setIsBulkDelete(false);
-          }}
-          onConfirm={confirmDelete}
-          title={
-            isBulkDelete
-              ? (direction === 'rtl' ? `هل أنت متأكد من حذف ${selectedIds.length} عنصر؟` : `Are you sure you want to delete ${selectedIds.length} items?`)
-              : undefined
-          }
-          itemName={!isBulkDelete && adjustmentToDelete ? adjustments.find(a => a.id === adjustmentToDelete)?.refNo : undefined}
-        />
         {showDetailsModal && selectedAdjustment && (
           <motion.div
             initial={{ opacity: 0 }}

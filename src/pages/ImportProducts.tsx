@@ -38,7 +38,7 @@ export default function ImportProducts() {
           {/* Instructions Box */}
           <div className="bg-gray-50 border border-gray-200 rounded-md p-6 mb-8">
               <div className="flex flex-col md:flex-row gap-6 items-start">
-                  <button onClick={handleFileSelect} className="bg-[#2ecc71] text-white px-4 py-2 rounded-md text-sm hover:bg-[#27ae60] transition-colors flex items-center gap-2 whitespace-nowrap">
+                  <button onClick={handleFileSelect} className="bg-[#054C28] text-white px-4 py-2 rounded-md text-sm hover:bg-[#043b1f] transition-colors flex items-center gap-2 whitespace-nowrap">
                       <FileDown size={16} />
                       {t('download_sample_file')}
                   </button>
@@ -71,7 +71,7 @@ export default function ImportProducts() {
                         className="hidden" 
                         onChange={(e) => setFileName(e.target.files?.[0]?.name || '')}
                       />
-                      <button onClick={handleFileSelect} className="bg-[#2ecc71] text-white px-6 py-2 rounded-md text-sm hover:bg-[#27ae60] transition-colors flex items-center gap-2">
+                      <button onClick={handleFileSelect} className="bg-[#054C28] text-white px-6 py-2 rounded-md text-sm hover:bg-[#043b1f] transition-colors flex items-center gap-2">
                           <Upload size={16} />
                           {t('browse')}
                       </button>
@@ -80,7 +80,7 @@ export default function ImportProducts() {
               </div>
 
               <div className="flex justify-end pt-4">
-                  <button className="bg-[#2ecc71] text-white px-8 py-2 rounded-md font-medium hover:bg-[#27ae60] transition-colors shadow-sm">
+                  <button className="bg-[#054C28] text-white px-8 py-2 rounded-md font-medium hover:bg-[#043b1f] transition-colors shadow-sm">
                       {t('import')}
                   </button>
               </div>
